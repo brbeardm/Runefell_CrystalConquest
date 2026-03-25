@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:usersbbearRunefell_CrystalConquest -maxdepth 2 -type f \\\\\\(-name *.md -o -name *.txt -o -name *.doc* \\\\\\))",
+      "Bash(find C:usersbbearRunefell_CrystalConquestAssets -name *Bridge* -o -name *bridge*)",
+      "Bash(xargs ls:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
