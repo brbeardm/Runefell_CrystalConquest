@@ -7,19 +7,42 @@ public class Enemy : MonoBehaviour
     [SerializeField] private EnemyData data;
 
     private int _currentHealth;
+    private int _maxHealth;
     private bool _isDead;
     private Action<GameObject> _releaseCallback;
 
-    // Events other systems can listen to
+    // Scaled overrides (set by InitializeScaled, -1 means use data defaults)
+    private int _overrideHP = -1;
+    private float _overrideSpeed = -1f;
+
+    // Events
     public static event Action<Enemy> OnEnemyDied;
+    public event Action<int, int> OnDamageTaken; // currentHP, maxHP
 
     public EnemyData Data => data;
     public bool IsDead => _isDead;
+    public int CurrentHealth => _currentHealth;
+    public int MaxHealth => _maxHealth;
+    public float MoveSpeed => _overrideSpeed > 0 ? _overrideSpeed : (data != null ? data.moveSpeed : 0f);
 
     public void Initialize(EnemyData enemyData, Action<GameObject> releaseCallback = null)
     {
         data = enemyData;
         _releaseCallback = releaseCallback;
+        _overrideHP = -1;
+        _overrideSpeed = -1f;
+        ResetEnemy();
+    }
+
+    /// <summary>
+    /// Initialize with per-wave scaled stats (overrides EnemyData defaults).
+    /// </summary>
+    public void InitializeScaled(EnemyData enemyData, int overrideHP, float overrideSpeed, Action<GameObject> releaseCallback = null)
+    {
+        data = enemyData;
+        _releaseCallback = releaseCallback;
+        _overrideHP = overrideHP;
+        _overrideSpeed = overrideSpeed;
         ResetEnemy();
     }
 
@@ -34,7 +57,17 @@ public class Enemy : MonoBehaviour
     {
         if (_isDead || data == null) return;
 
-        float speed = data.moveSpeed * Time.deltaTime;
+        // Freeze during Necromancer resurrection
+        if (CrystalNecromancerBossBehavior.IsResurrecting) return;
+
+        // HP regen (used by Crystal Troll boss)
+        if (data.healthRegenRate > 0 && _currentHealth < _maxHealth)
+        {
+            _currentHealth = Mathf.Min(_currentHealth + Mathf.CeilToInt(data.healthRegenRate * Time.deltaTime), _maxHealth);
+            OnDamageTaken?.Invoke(_currentHealth, _maxHealth);
+        }
+
+        float speed = MoveSpeed * Time.deltaTime;
 
         // Get crystal wall X — enemies must stay to the RIGHT of this
         float crystalWallX = BridgeZoneConstants.EnemyHordeMinX; // default: left bridge edge
@@ -86,11 +119,21 @@ public class Enemy : MonoBehaviour
             _currentHealth = 0;
             Die();
         }
+        else
+        {
+            OnDamageTaken?.Invoke(_currentHealth, _maxHealth);
+        }
     }
 
     private void Die()
     {
         _isDead = true;
+
+        // Notify boss behavior before destruction
+        var boss = GetComponent<BossBehavior>();
+        if (boss != null)
+            boss.OnDie();
+
         OnEnemyDied?.Invoke(this);
 
         if (_releaseCallback != null)
@@ -104,23 +147,47 @@ public class Enemy : MonoBehaviour
         _isDead = false;
         if (data != null)
         {
-            _currentHealth = data.maxHealth;
+            _maxHealth = _overrideHP > 0 ? _overrideHP : data.maxHealth;
+            _currentHealth = _maxHealth;
             transform.localScale = Vector3.one * data.scaleMultiplier;
         }
     }
 
+    /// <summary>
+    /// Directly set health (used by Necromancer heal).
+    /// </summary>
+    public void SetHealth(int hp)
+    {
+        _currentHealth = Mathf.Clamp(hp, 0, _maxHealth);
+        OnDamageTaken?.Invoke(_currentHealth, _maxHealth);
+    }
+
     private void OnTriggerEnter(Collider other)
     {
-        // NOTE: Projectile damage is now handled authoritatively in PooledProjectile.OnTriggerEnter
-        // via GetComponentInParent<Enemy>. This block is intentionally left as a no-op for
-        // projectiles to avoid double-damage.
+        // NOTE: Projectile damage is handled authoritatively in PooledProjectile.OnTriggerEnter.
 
-        // Kill shooter on contact
+        // Contact with shooter
         if (other.CompareTag("Player"))
         {
             var health = other.GetComponentInParent<ShooterHealth>();
-            if (health != null)
+            if (health == null) return;
+
+            if (data != null && data.isInstantKill)
+            {
+                // Boss smash = instant game over
+                health.BossSmash();
+            }
+            else if (health.IsMainPlayer)
+            {
+                // Main player takes HP damage from orcs
+                health.TakeDamage(data != null ? data.contactDamage : 10);
+            }
+            else
+            {
+                // Clone dies on any enemy contact
                 health.Kill();
+            }
+
             Die();
         }
     }

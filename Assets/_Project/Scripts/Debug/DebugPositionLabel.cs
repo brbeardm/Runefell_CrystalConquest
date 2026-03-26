@@ -27,6 +27,7 @@ public class DebugPositionLabel : MonoBehaviour
     private void OnEnable()
     {
         _myIndex = _instanceCounter++;
+        enabled = false; // Disable debug labels — re-enable in Inspector if needed
     }
 
     private void OnDisable()

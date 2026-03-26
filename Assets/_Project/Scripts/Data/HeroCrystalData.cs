@@ -3,18 +3,20 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NewHeroCrystal", menuName = "Runefell/Hero Crystal Data")]
 public class HeroCrystalData : ScriptableObject
 {
-    [Tooltip("Total hits required to free the hero (10 pieces x hitsPerPiece).")]
-    public int hitsToFree = 20;
+    [Tooltip("Base hits required to break the crystal (overridden per wave by WaveScalingConfig).")]
+    public int hitsToFree = 50;
 
     [Tooltip("Hits required to destroy each crystal piece.")]
-    public int hitsPerPiece = 2;
+    public int hitsPerPiece = 5;
 
-    [Tooltip("How long the hero stays active (seconds).")]
-    public float heroDuration = 60f;
+    [Header("Buff")]
+    [Tooltip("Fire rate multiplier when buff is active.")]
+    public float fireRateMultiplier = 2f;
 
-    [Tooltip("Damage multiplier for hero projectiles.")]
-    public int heroDamageMultiplier = 10;
+    [Tooltip("Damage multiplier when buff is active.")]
+    public float damageMultiplier = 2f;
 
-    [Tooltip("Seconds before crystal respawns after hero expires.")]
-    public float respawnDelay = 5f;
+    [Header("Respawn")]
+    [Tooltip("Seconds before crystal respawns after buff expires.")]
+    public float respawnDelay = 10f;
 }

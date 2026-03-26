@@ -11,8 +11,6 @@ public class ShooterManager : MonoBehaviour
     [Header("Clone Shooter")]
     [SerializeField] private GameObject cloneShooterPrefab;
 
-    [Header("Hero Shooter")]
-    [SerializeField] private GameObject heroShooterPrefab;
 
     [Header("Shoulder-to-Shoulder Formation")]
     [Tooltip("Horizontal spacing between shooters (center-to-center). Tune in Inspector so models touch.")]
@@ -21,14 +19,18 @@ public class ShooterManager : MonoBehaviour
     [Tooltip("How far behind the player clones line up (negative = behind).")]
     [SerializeField] private float cloneZOffset = -0.2f;
 
+    [Header("Clone Cap")]
+    [Tooltip("Maximum total shooters (player + clones). 10 = player + 9 clones.")]
+    [SerializeField] private int maxShooters = 10;
+
     private readonly List<GameObject> _shooters = new List<GameObject>();
     private readonly List<GameObject> _clones = new List<GameObject>();
-    private GameObject _heroShooter;
     private Transform _playerTransform;
     private GameObject _playerObject;
 
     public int ShooterCount => _shooters.Count;
     public int CloneCount => _clones.Count;
+    public int MaxShooters => maxShooters;
 
     private void Awake()
     {
@@ -127,46 +129,13 @@ public class ShooterManager : MonoBehaviour
         follower.xOffset = offset.x;
         follower.zOffset = cloneZOffset;
 
+        // Clone expires after timer
+        if (clone.GetComponent<CloneLifetimeTimer>() == null)
+            clone.AddComponent<CloneLifetimeTimer>();
+
         Debug.Log($"[ShooterManager] Clone #{_clones.Count} spawned. X offset={offset.x:F2}");
 
         RegisterShooter(clone);
-    }
-
-    public void AddHeroShooter()
-    {
-        if (heroShooterPrefab == null)
-        {
-            Debug.LogWarning("ShooterManager: No heroShooterPrefab assigned.");
-            return;
-        }
-
-        if (_heroShooter != null) return;
-
-        Vector3 pos = _playerTransform != null
-            ? _playerTransform.position
-            : Vector3.zero;
-
-        _heroShooter = Instantiate(heroShooterPrefab, pos, Quaternion.identity);
-
-        var follower = _heroShooter.GetComponent<CloneFollower>();
-        if (follower == null)
-            follower = _heroShooter.AddComponent<CloneFollower>();
-
-        follower.target = _playerTransform;
-        // Hero takes the first clone slot (right of player), push existing clones out
-        follower.xOffset = cloneXSpacing;
-        follower.zOffset = cloneZOffset;
-
-        RegisterShooter(_heroShooter);
-    }
-
-    public void RemoveHeroShooter()
-    {
-        if (_heroShooter == null) return;
-
-        RemoveShooter(_heroShooter);
-        Destroy(_heroShooter);
-        _heroShooter = null;
     }
 
     /// <summary>
@@ -185,6 +154,25 @@ public class ShooterManager : MonoBehaviour
         float sign = (cloneNumber % 2 == 1) ? 1f : -1f;
         float x = sign * slot * cloneXSpacing;
         return new Vector3(x, 0f, 0f);
+    }
+
+    /// <summary>
+    /// Boss smash — kills all shooters (player + clones) and ends game.
+    /// </summary>
+    public void KillAllShooters()
+    {
+        // Copy list since Kill() modifies _shooters
+        var all = new List<GameObject>(_shooters);
+        foreach (var shooter in all)
+        {
+            if (shooter == null) continue;
+            var health = shooter.GetComponent<ShooterHealth>();
+            if (health != null)
+                health.Kill();
+        }
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.EndGame();
     }
 
     private void RepositionClones()

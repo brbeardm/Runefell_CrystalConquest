@@ -39,7 +39,26 @@ public sealed class PooledProjectile : MonoBehaviour
         // This handles cases where the hit collider is on a child object of the enemy.
         Enemy enemy = other.GetComponentInParent<Enemy>();
         if (enemy != null)
-            enemy.TakeDamage(Damage);
+        {
+            // Check for boss shield absorption (Sorcerer / Crystal Sorcerer)
+            var sorcerer = enemy.GetComponent<SorcererBossBehavior>();
+            if (sorcerer != null && sorcerer.TryAbsorbHit())
+            {
+                // Shield absorbed — no damage
+            }
+            else
+            {
+                var crystalSorcerer = enemy.GetComponent<CrystalSorcererBossBehavior>();
+                if (crystalSorcerer != null && crystalSorcerer.TryAbsorbHit())
+                {
+                    // Shield absorbed — no damage
+                }
+                else
+                {
+                    enemy.TakeDamage(Damage);
+                }
+            }
+        }
 
         // ── Impact VFX ────────────────────────────────────────────────────
         if (ImpactVFX.Instance != null)

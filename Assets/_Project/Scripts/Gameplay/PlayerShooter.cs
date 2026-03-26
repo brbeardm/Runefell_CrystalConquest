@@ -40,33 +40,19 @@ public class PlayerShooter : MonoBehaviour
     [Tooltip("Initial pool size when using simple pool.")]
     [SerializeField] private int poolSize = 20;
 
-    [Header("Hero Mode (legacy — prefer HeroPromotion component)")]
-    [Tooltip("Fire rate when in hero mode.")]
-    [SerializeField] private float heroFireRate = 12f;
-    [Tooltip("Projectile damage when in hero mode.")]
-    [SerializeField] private int heroDamage = 100;
-    [Tooltip("Scale multiplier when in hero mode.")]
-    [SerializeField] private float heroScaleMultiplier = 2f;
-    [Tooltip("Glow color when in hero mode.")]
-    [SerializeField] private Color heroGlowColor = new Color(1f, 0.85f, 0.2f, 1f);
-
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip fireSfx;
 
     private float _nextFireTime;
     private SimpleObjectPool _pool;
-    private float _normalFireRate;
-    private Vector3 _normalScale;
-    private bool _isHeroMode;
-    private Renderer _renderer;
-    private Color _normalColor;
-    private Material _material;
+    private float _baseFireRate;
+    private int _baseDamage = 10;
 
-    // Promotion system overrides
-    private int _promotionDamage;
-    private bool _hasPromotionStats;
-    private Transform _originalFirePoint;
+    // Buff system
+    private bool _isBuffed;
+    private float _buffFireRateMult = 1f;
+    private float _buffDamageMult = 1f;
 
     private void Awake()
     {
@@ -96,18 +82,7 @@ public class PlayerShooter : MonoBehaviour
         if (ShooterManager.Instance != null)
             ShooterManager.Instance.RegisterShooter(gameObject);
 
-        _normalFireRate = fireRate;
-        _normalScale = transform.localScale;
-
-        _renderer = GetComponentInChildren<Renderer>();
-        if (_renderer != null)
-        {
-            _material = _renderer.material;
-            if (_material.HasProperty("_BaseColor"))
-                _normalColor = _material.GetColor("_BaseColor");
-            else if (_material.HasProperty("_Color"))
-                _normalColor = _material.GetColor("_Color");
-        }
+        _baseFireRate = fireRate;
     }
 
     private void OnDestroy()
@@ -259,18 +234,14 @@ public class PlayerShooter : MonoBehaviour
         // Now activate — physics and triggers start from the correct state
         go.SetActive(true);
 
-        // Pool return callback (optional)
+        // Pool return callback and damage
         var pooled = go.GetComponent<PooledProjectile>();
         if (pooled != null)
         {
             if (useSimplePool && _pool != null)
                 pooled.SetReleaseCallback(_pool.ReturnToPool);
 
-            // Promotion system takes priority over legacy hero mode
-            if (_hasPromotionStats && _promotionDamage > 0)
-                pooled.Damage = _promotionDamage;
-            else if (_isHeroMode)
-                pooled.Damage = heroDamage;
+            pooled.Damage = Mathf.RoundToInt(_baseDamage * _buffDamageMult);
         }
 
         if (audioSource != null && fireSfx != null)
@@ -279,70 +250,28 @@ public class PlayerShooter : MonoBehaviour
         OnPlayerFired?.Invoke();
     }
 
-    public void ActivateHeroMode()
-    {
-        _isHeroMode = true;
-        fireRate = heroFireRate;
-        transform.localScale = _normalScale * heroScaleMultiplier;
-
-        // Golden glow
-        if (_material != null)
-        {
-            if (_material.HasProperty("_BaseColor"))
-                _material.SetColor("_BaseColor", heroGlowColor);
-            if (_material.HasProperty("_Color"))
-                _material.SetColor("_Color", heroGlowColor);
-            if (_material.HasProperty("_EmissionColor"))
-            {
-                _material.EnableKeyword("_EMISSION");
-                _material.SetColor("_EmissionColor", heroGlowColor * 2f);
-            }
-        }
-    }
-
-    public void DeactivateHeroMode()
-    {
-        _isHeroMode = false;
-        fireRate = _normalFireRate;
-        transform.localScale = _normalScale;
-
-        // Restore normal appearance
-        if (_material != null)
-        {
-            if (_material.HasProperty("_BaseColor"))
-                _material.SetColor("_BaseColor", _normalColor);
-            if (_material.HasProperty("_Color"))
-                _material.SetColor("_Color", _normalColor);
-            if (_material.HasProperty("_EmissionColor"))
-            {
-                _material.DisableKeyword("_EMISSION");
-                _material.SetColor("_EmissionColor", Color.black);
-            }
-        }
-    }
-
-    public bool IsHeroMode => _isHeroMode;
-    public bool IsPromoted => _hasPromotionStats;
+    public bool IsBuffed => _isBuffed;
 
     /// <summary>
-    /// Called by HeroPromotion to update fire rate, damage, and fire point.
-    /// Pass the tier's firePoint to reroute projectile origin to the new model's muzzle.
+    /// Apply crystal power-up buff (fire rate + damage multipliers).
     /// </summary>
-    public void SetPromotionStats(float newFireRate, int newDamage, Transform newFirePoint)
+    public void SetBuffStats(float fireRateMult, float damageMult)
     {
-        // Store original fire point on first call
-        if (_originalFirePoint == null)
-            _originalFirePoint = firePoint;
+        _isBuffed = true;
+        _buffFireRateMult = fireRateMult;
+        _buffDamageMult = damageMult;
+        fireRate = _baseFireRate * _buffFireRateMult;
+    }
 
-        fireRate = newFireRate;
-        _promotionDamage = newDamage;
-        _hasPromotionStats = newDamage > 0;
-
-        // Reroute fire point to the new tier's muzzle (keeps firing height correct)
-        if (newFirePoint != null)
-            firePoint = newFirePoint;
-        else if (_originalFirePoint != null)
-            firePoint = _originalFirePoint;
+    /// <summary>
+    /// Remove crystal power-up buff, restore base stats.
+    /// </summary>
+    public void ClearBuffStats()
+    {
+        _isBuffed = false;
+        _buffFireRateMult = 1f;
+        _buffDamageMult = 1f;
+        fireRate = _baseFireRate;
     }
 
     private bool IsPointerOverUI()

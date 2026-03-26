@@ -7,6 +7,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Text scoreText;
     [SerializeField] private Text waveText;
     [SerializeField] private Text shooterCountText;
+    [SerializeField] private Text playerHPText;
 
     [Header("Hero Crystal Progress")]
     [SerializeField] private Slider heroCrystalSlider;
@@ -14,6 +15,10 @@ public class UIManager : MonoBehaviour
     [Header("Pause")]
     [SerializeField] private Button pauseButton;
     [SerializeField] private Text pauseButtonText;
+
+    [Header("Mute")]
+    [SerializeField] private Button muteButton;
+    [SerializeField] private Text muteButtonText;
 
     [Header("Game Over Panel")]
     [SerializeField] private GameObject gameOverPanel;
@@ -27,9 +32,8 @@ public class UIManager : MonoBehaviour
         GameManager.OnPauseToggled += UpdatePauseButton;
         WaveSpawner.OnWaveStarted += UpdateWave;
         ShooterManager.OnShooterCountChanged += UpdateShooterCount;
+        ShooterHealth.OnPlayerHPChanged += UpdatePlayerHP;
         HeroCrystal.OnHeroCrystalHit += UpdateHeroCrystalProgress;
-        HeroCrystal.OnHeroFreed += OnHeroFreed;
-        HeroCrystal.OnHeroExpired += OnHeroExpired;
     }
 
     private void OnDisable()
@@ -39,9 +43,8 @@ public class UIManager : MonoBehaviour
         GameManager.OnPauseToggled -= UpdatePauseButton;
         WaveSpawner.OnWaveStarted -= UpdateWave;
         ShooterManager.OnShooterCountChanged -= UpdateShooterCount;
+        ShooterHealth.OnPlayerHPChanged -= UpdatePlayerHP;
         HeroCrystal.OnHeroCrystalHit -= UpdateHeroCrystalProgress;
-        HeroCrystal.OnHeroFreed -= OnHeroFreed;
-        HeroCrystal.OnHeroExpired -= OnHeroExpired;
     }
 
     private void Start()
@@ -55,7 +58,11 @@ public class UIManager : MonoBehaviour
         if (pauseButton != null)
             pauseButton.onClick.AddListener(OnPauseClicked);
 
+        if (muteButton != null)
+            muteButton.onClick.AddListener(OnMuteClicked);
+
         UpdatePauseButton(false);
+        UpdateMuteButton();
 
         if (heroCrystalSlider != null)
         {
@@ -66,6 +73,7 @@ public class UIManager : MonoBehaviour
 
         UpdateScore(0);
         UpdateShooterCount(1);
+        UpdatePlayerHP(100, 100);
     }
 
     private void UpdateScore(int score)
@@ -86,25 +94,16 @@ public class UIManager : MonoBehaviour
             shooterCountText.text = $"Shooters: {count}";
     }
 
+    private void UpdatePlayerHP(int current, int max)
+    {
+        if (playerHPText != null)
+            playerHPText.text = $"HP: {current}";
+    }
+
     private void UpdateHeroCrystalProgress(int current, int max)
     {
         if (heroCrystalSlider != null && max > 0)
             heroCrystalSlider.value = (float)current / max;
-    }
-
-    private void OnHeroFreed()
-    {
-        if (heroCrystalSlider != null)
-            heroCrystalSlider.gameObject.SetActive(false);
-    }
-
-    private void OnHeroExpired()
-    {
-        if (heroCrystalSlider != null)
-        {
-            heroCrystalSlider.value = 0;
-            heroCrystalSlider.gameObject.SetActive(true);
-        }
     }
 
     private void ShowGameOver()
@@ -132,5 +131,20 @@ public class UIManager : MonoBehaviour
     {
         if (GameManager.Instance != null)
             GameManager.Instance.RestartGame();
+    }
+
+    private bool _isMuted;
+
+    private void OnMuteClicked()
+    {
+        _isMuted = !_isMuted;
+        AudioListener.volume = _isMuted ? 0f : 1f;
+        UpdateMuteButton();
+    }
+
+    private void UpdateMuteButton()
+    {
+        if (muteButtonText != null)
+            muteButtonText.text = _isMuted ? "\u266A" : "\u266B";
     }
 }

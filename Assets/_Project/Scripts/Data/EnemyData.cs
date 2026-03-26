@@ -17,8 +17,14 @@ public class EnemyData : ScriptableObject
     [Tooltip("Damage dealt to the player on contact.")]
     public int contactDamage = 10;
 
+    [Tooltip("Boss contact = instant game over (kills player + all clones).")]
+    public bool isInstantKill;
+
+    [Tooltip("HP regenerated per second (0 = none). Used by Crystal Troll boss.")]
+    public float healthRegenRate;
+
     [Header("Visuals")]
-    [Tooltip("Uniform scale multiplier. Bosses are larger (2-4x).")]
+    [Tooltip("Uniform scale multiplier. Bosses are larger (5x).")]
     public float scaleMultiplier = 1f;
 
     [Header("Rewards")]

@@ -1,0 +1,115 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8621fd382b87a64eb47748687b17290, type: 3}
+  m_Name: DefaultCampaign
+  m_EditorClassIdentifier: Assembly-CSharp::WaveScalingConfig
+  totalWaves: 9
+  waves:
+  - waveName: The Orc Horde
+    orcCount: 400
+    orcHP: 30
+    orcSpeed: 1.6
+    orcSpawnInterval: 0.4
+    bossHP: 800
+    bossSpeed: 0.8
+    bossSpawnDelay: 40
+    crystalHitsToBreak: 50
+    buffDuration: 30
+    breatherSeconds: 8
+  - waveName: Troll Assault
+    orcCount: 500
+    orcHP: 35
+    orcSpeed: 1.8
+    orcSpawnInterval: 0.34
+    bossHP: 1000
+    bossSpeed: 0.7
+    bossSpawnDelay: 45
+    crystalHitsToBreak: 60
+    buffDuration: 28
+    breatherSeconds: 7
+  - waveName: Wraith Shadows
+    orcCount: 600
+    orcHP: 40
+    orcSpeed: 2
+    orcSpawnInterval: 0.3
+    bossHP: 900
+    bossSpeed: 2
+    bossSpawnDelay: 50
+    crystalHitsToBreak: 70
+    buffDuration: 26
+    breatherSeconds: 7
+  - waveName: Sorcerer's Gambit
+    orcCount: 650
+    orcHP: 45
+    orcSpeed: 2.2
+    orcSpawnInterval: 0.28
+    bossHP: 1200
+    bossSpeed: 0.8
+    bossSpawnDelay: 55
+    crystalHitsToBreak: 80
+    buffDuration: 25
+    breatherSeconds: 6
+  - waveName: Crystal Orc Siege
+    orcCount: 750
+    orcHP: 50
+    orcSpeed: 2.4
+    orcSpawnInterval: 0.26
+    bossHP: 1500
+    bossSpeed: 0.7
+    bossSpawnDelay: 60
+    crystalHitsToBreak: 90
+    buffDuration: 24
+    breatherSeconds: 6
+  - waveName: Crystal Troll Fury
+    orcCount: 850
+    orcHP: 55
+    orcSpeed: 2.6
+    orcSpawnInterval: 0.24
+    bossHP: 1800
+    bossSpeed: 0.7
+    bossSpawnDelay: 60
+    crystalHitsToBreak: 100
+    buffDuration: 22
+    breatherSeconds: 5
+  - waveName: Crystal Wraith Haunting
+    orcCount: 950
+    orcHP: 60
+    orcSpeed: 2.8
+    orcSpawnInterval: 0.22
+    bossHP: 1600
+    bossSpeed: 1.6
+    bossSpawnDelay: 55
+    crystalHitsToBreak: 110
+    buffDuration: 21
+    breatherSeconds: 5
+  - waveName: Crystal Sorcerer Onslaught
+    orcCount: 1050
+    orcHP: 70
+    orcSpeed: 3
+    orcSpawnInterval: 0.2
+    bossHP: 2000
+    bossSpeed: 0.8
+    bossSpawnDelay: 60
+    crystalHitsToBreak: 120
+    buffDuration: 20
+    breatherSeconds: 4
+  - waveName: Crystal Necromancer Rising
+    orcCount: 1250
+    orcHP: 80
+    orcSpeed: 3.2
+    orcSpawnInterval: 0.18
+    bossHP: 2500
+    bossSpeed: 0.7
+    bossSpawnDelay: 60
+    crystalHitsToBreak: 130
+    buffDuration: 18
+    breatherSeconds: 4

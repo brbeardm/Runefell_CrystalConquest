@@ -71,14 +71,10 @@ public class CrystalBall : MonoBehaviour
     {
         if (_cracked) return;
 
-        if (other.CompareTag("Projectile"))
+        // Player walks into the orb to collect it
+        if (other.CompareTag("Player"))
         {
-            _currentHits++;
-
-            if (_currentHits >= data.hitsToCrack)
-            {
-                Crack();
-            }
+            Crack();
         }
     }
 
@@ -140,9 +136,26 @@ public class CrystalBall : MonoBehaviour
     {
         _cracked = true;
 
-        // Clone a shooter
         if (ShooterManager.Instance != null)
-            ShooterManager.Instance.AddCloneShooter();
+        {
+            if (ShooterManager.Instance.ShooterCount < ShooterManager.Instance.MaxShooters)
+            {
+                // Spawn a clone
+                ShooterManager.Instance.AddCloneShooter();
+            }
+            else
+            {
+                // At max clones — heal player 1 HP instead
+                foreach (var health in FindObjectsByType<ShooterHealth>(FindObjectsSortMode.None))
+                {
+                    if (health.IsMainPlayer)
+                    {
+                        health.Heal(1);
+                        break;
+                    }
+                }
+            }
+        }
 
         // Return to pool or destroy
         if (_releaseCallback != null)

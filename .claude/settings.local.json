@@ -5,7 +5,17 @@
       "Bash(find C:usersbbearRunefell_CrystalConquestAssets -name *Bridge* -o -name *bridge*)",
       "Bash(xargs ls:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git config:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(gh auth:*)",
+      "Bash(grep -E \"\\\\.\\(prefab|asset\\)$\")",
+      "Bash(grep -r \"boss\\\\|Boss\\\\|BOSS\" /c/users/bbear/Runefell_CrystalConquest/Assets/_Project/Scripts/ --include=*.cs)",
+      "Bash(find /c/users/bbear/Runefell_CrystalConquest/Assets/_Project -name *.asset)",
+      "Bash(find C:/users/bbear/Runefell_CrystalConquest/Assets -name *.cs -newer C:/users/bbear/Runefell_CrystalConquest/Assets/_Project/Scripts/UI/UIManager.cs -not -path */Library/*)"
     ]
   }
 }

@@ -10,19 +10,20 @@ public class HeroCrystal : MonoBehaviour
     [Header("Crystal Pieces (assign 10 child meshes, top to bottom)")]
     [SerializeField] private GameObject[] crystalPieces = new GameObject[10];
 
-    [Header("Hero Inside Crystal")]
-    [SerializeField] private GameObject heroMeshInside;
-    [SerializeField] private Renderer[] heroRenderers;
-
     [Header("Health Display")]
     [Tooltip("Y offset above crystal for health text.")]
     [SerializeField] private float healthTextYOffset = 3.5f;
-    [SerializeField] private float healthTextScale = 0.02f;
     [SerializeField] private Color healthTextColor = Color.white;
+    [SerializeField] private int healthFontSize = 50;
 
-    public static event Action<int, int> OnHeroCrystalHit;  // current, max
-    public static event Action OnHeroFreed;
-    public static event Action OnHeroExpired;
+    /// <summary>Fired when crystal is hit (currentHits, maxHits).</summary>
+    public static event Action<int, int> OnHeroCrystalHit;
+
+    /// <summary>Fired when crystal is broken. Params: fireRateMult, damageMult, buffDuration.</summary>
+    public static event Action<float, float, float> OnCrystalBroken;
+
+    /// <summary>Fired when crystal respawns and is ready to be shot again.</summary>
+    public static event Action OnCrystalRespawned;
 
     public static HeroCrystal Instance { get; private set; }
     public bool IsPresent => _isActive;
@@ -32,27 +33,30 @@ public class HeroCrystal : MonoBehaviour
     private int _piecesDestroyed;
     private bool _isActive = true;
     private Collider _collider;
-    private TextMesh _healthText;
-    private GameObject _healthTextObj;
+    private string _healthDisplayText;
+    private GUIStyle _guiStyle;
+    private GUIStyle _bgStyle;
 
     public int CurrentHits => _currentHits;
-    public int MaxHits => data != null ? data.hitsToFree : 250;
+    public int MaxHits => _scaledHitsToFree > 0 ? _scaledHitsToFree : (data != null ? data.hitsToFree : 250);
+
+    private int _scaledHitsToFree;
+    private float _scaledBuffDuration;
+
+    /// <summary>
+    /// Called by WaveSpawner at the start of each wave to scale crystal difficulty.
+    /// </summary>
+    public void SetWaveScaling(int hitsToFree, float buffDuration)
+    {
+        _scaledHitsToFree = hitsToFree;
+        _scaledBuffDuration = buffDuration;
+        UpdateHealthText();
+    }
 
     private void Awake()
     {
         Instance = this;
         _collider = GetComponent<Collider>();
-        CreateHealthText();
-    }
-
-    private void OnEnable()
-    {
-        HeroPromotion.OnTierChanged += HandleTierChanged;
-    }
-
-    private void OnDisable()
-    {
-        HeroPromotion.OnTierChanged -= HandleTierChanged;
     }
 
     private void OnDestroy()
@@ -60,81 +64,63 @@ public class HeroCrystal : MonoBehaviour
         if (Instance == this) Instance = null;
     }
 
-    private void HandleTierChanged(int newTier)
-    {
-        // When player demotes back to base tier, respawn the crystal after a delay
-        if (newTier == 0 && !_isActive)
-        {
-            OnHeroExpired?.Invoke();
-            StartCoroutine(RespawnAfterDelay());
-        }
-    }
-
-    private IEnumerator RespawnAfterDelay()
-    {
-        yield return new WaitForSeconds(data != null ? data.respawnDelay : 5f);
-        RespawnCrystal();
-    }
-
     private void Start()
     {
-        if (heroMeshInside != null)
-            heroMeshInside.SetActive(true);
-
-        SetHeroOpacity(0.05f);
         UpdateHealthText();
     }
 
-    private void LateUpdate()
+    private void OnGUI()
     {
-        // Make health text face the camera
-        if (_healthTextObj != null && _healthTextObj.activeSelf)
+        if (!_isActive || Camera.main == null) return;
+        if (string.IsNullOrEmpty(_healthDisplayText)) return;
+
+        Vector3 worldPos = transform.position + Vector3.up * healthTextYOffset;
+        Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+        if (screenPos.z < 0f) return;
+
+        if (_guiStyle == null)
         {
-            var cam = Camera.main;
-            if (cam != null)
-                _healthTextObj.transform.rotation = Quaternion.LookRotation(
-                    _healthTextObj.transform.position - cam.transform.position);
+            _guiStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold
+            };
+            _bgStyle = new GUIStyle(GUI.skin.box);
         }
-    }
 
-    private void CreateHealthText()
-    {
-        _healthTextObj = new GameObject("CrystalHealthText");
-        _healthTextObj.transform.SetParent(transform);
-        _healthTextObj.transform.localPosition = new Vector3(0f, healthTextYOffset, 0f);
-        _healthTextObj.transform.localScale = Vector3.one * healthTextScale;
+        _guiStyle.fontSize = healthFontSize;
+        _guiStyle.normal.textColor = healthTextColor;
 
-        _healthText = _healthTextObj.AddComponent<TextMesh>();
-        _healthText.alignment = TextAlignment.Center;
-        _healthText.anchor = TextAnchor.MiddleCenter;
-        _healthText.fontSize = 120;
-        _healthText.characterSize = 0.5f;
-        _healthText.color = healthTextColor;
-        _healthText.fontStyle = FontStyle.Bold;
+        float guiY = Screen.height - screenPos.y;
+        Vector2 size = _guiStyle.CalcSize(new GUIContent(_healthDisplayText));
+        size.x += 10f;
+        size.y += 4f;
+
+        Rect rect = new Rect(screenPos.x - size.x * 0.5f, guiY - size.y, size.x, size.y);
+        GUI.Box(rect, GUIContent.none, _bgStyle);
+        GUI.Label(rect, _healthDisplayText, _guiStyle);
     }
 
     private void UpdateHealthText()
     {
-        if (_healthText == null || data == null) return;
-
-        int remaining = data.hitsToFree - _currentHits;
-        _healthText.text = $"{remaining} / {data.hitsToFree}";
+        int max = MaxHits;
+        int remaining = max - _currentHits;
+        _healthDisplayText = $"{remaining} / {max}";
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (!_isActive) return;
-        if (data == null) return;
 
         if (other.CompareTag("Projectile"))
         {
             _currentHits++;
-            OnHeroCrystalHit?.Invoke(_currentHits, data.hitsToFree);
+            int max = MaxHits;
+            OnHeroCrystalHit?.Invoke(_currentHits, max);
 
-            float progress = (float)_currentHits / data.hitsToFree;
-
-            // Destroy crystal pieces from top — each piece takes hitsPerPiece shots
-            int shouldBeDestroyed = Mathf.Min(_currentHits / data.hitsPerPiece, crystalPieces.Length);
+            // Destroy crystal pieces progressively
+            int hitsPerPiece = data != null ? data.hitsPerPiece : 5;
+            int shouldBeDestroyed = Mathf.Min(_currentHits / hitsPerPiece, crystalPieces.Length);
             while (_piecesDestroyed < shouldBeDestroyed)
             {
                 if (_piecesDestroyed < crystalPieces.Length && crystalPieces[_piecesDestroyed] != null)
@@ -142,65 +128,50 @@ public class HeroCrystal : MonoBehaviour
                 _piecesDestroyed++;
             }
 
-            // Reveal hero inside as crystal breaks
-            SetHeroOpacity(Mathf.Lerp(0.05f, 1f, progress));
-
             UpdateHealthText();
 
-            if (_currentHits >= data.hitsToFree)
+            if (_currentHits >= max)
             {
-                FreeHero();
+                ActivateBuff();
             }
         }
     }
 
-    private void SetHeroOpacity(float alpha)
-    {
-        if (heroRenderers == null) return;
-
-        foreach (var rend in heroRenderers)
-        {
-            if (rend == null) continue;
-
-            foreach (var mat in rend.materials)
-            {
-                if (mat.HasProperty("_BaseColor"))
-                {
-                    Color c = mat.GetColor("_BaseColor");
-                    c.a = alpha;
-                    mat.SetColor("_BaseColor", c);
-                }
-            }
-        }
-    }
-
-    private void FreeHero()
+    private void ActivateBuff()
     {
         _isActive = false;
 
+        // Hide all crystal pieces
         foreach (var piece in crystalPieces)
         {
             if (piece != null) piece.SetActive(false);
         }
-        
-        // Deactivate the visual hero mesh inside the crystal
-        if (heroMeshInside != null)
-            heroMeshInside.SetActive(false);
-            
-        if (_healthTextObj != null)
-            _healthTextObj.SetActive(false);
 
-        var col = GetComponent<Collider>();
-        if (col != null) col.enabled = false;
+        // Disable collider
+        if (_collider != null) _collider.enabled = false;
 
-        OnHeroFreed?.Invoke();
+        // Get buff params from data
+        float fireRateMult = data != null ? data.fireRateMultiplier : 2f;
+        float damageMult = data != null ? data.damageMultiplier : 2f;
+        float duration = _scaledBuffDuration > 0 ? _scaledBuffDuration : (data != null ? 30f : 30f);
 
-        // Promote the player to the next hero tier
-        var promotion = UnityEngine.Object.FindAnyObjectByType<HeroPromotion>();
-        if (promotion != null)
-        {
-            promotion.Promote();
-        }
+        // Fire event — CrystalBuffManager picks this up
+        OnCrystalBroken?.Invoke(fireRateMult, damageMult, duration);
+    }
+
+    /// <summary>
+    /// Called by CrystalBuffManager when the buff expires to begin the respawn cycle.
+    /// </summary>
+    public void StartRespawnCycle()
+    {
+        float delay = data != null ? data.respawnDelay : 10f;
+        StartCoroutine(RespawnAfterDelay(delay));
+    }
+
+    private IEnumerator RespawnAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        RespawnCrystal();
     }
 
     private void RespawnCrystal()
@@ -214,15 +185,10 @@ public class HeroCrystal : MonoBehaviour
             if (piece != null) piece.SetActive(true);
         }
 
-        if (heroMeshInside != null)
-            heroMeshInside.SetActive(true);
-        SetHeroOpacity(0.05f);
-
-        if (_healthTextObj != null)
-            _healthTextObj.SetActive(true);
         UpdateHealthText();
 
-        var col = GetComponent<Collider>();
-        if (col != null) col.enabled = true;
+        if (_collider != null) _collider.enabled = true;
+
+        OnCrystalRespawned?.Invoke();
     }
 }
