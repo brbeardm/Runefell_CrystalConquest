@@ -26,14 +26,16 @@ public class CloneLifetimeTimer : MonoBehaviour
         // Normal phase
         while (_timeRemaining > flashStartTime)
         {
-            _timeRemaining -= Time.deltaTime;
+            if (!CrystalNecromancerBossBehavior.IsResurrecting)
+                _timeRemaining -= Time.deltaTime;
             yield return null;
         }
 
         // Flash phase — last 5 seconds
         while (_timeRemaining > 0f)
         {
-            _timeRemaining -= Time.deltaTime;
+            if (!CrystalNecromancerBossBehavior.IsResurrecting)
+                _timeRemaining -= Time.deltaTime;
 
             // Toggle visibility rapidly
             float alpha = (Mathf.Sin(Time.time * flashSpeed) + 1f) * 0.5f;

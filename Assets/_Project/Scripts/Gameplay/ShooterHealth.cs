@@ -55,6 +55,17 @@ public class ShooterHealth : MonoBehaviour
         // Invincibility window — prevents stacked orcs from instant-killing
         if (Time.time < _invincibleUntil) return;
 
+        // Shield absorb check (powerup)
+        if (PowerupManager.Instance != null && PowerupManager.Instance.TryAbsorbShieldHit())
+        {
+            _invincibleUntil = Time.time + invincibilityDuration;
+            return;
+        }
+
+        // Iron Skin half damage (powerup)
+        if (PowerupManager.Instance != null && PowerupManager.Instance.IsIronSkinActive)
+            amount = Mathf.Max(1, amount / 2);
+
         _currentHP -= amount;
         _currentHP = Mathf.Max(_currentHP, 0);
         _invincibleUntil = Time.time + invincibilityDuration;
@@ -97,6 +108,17 @@ public class ShooterHealth : MonoBehaviour
     public void Kill()
     {
         if (_isDead) return;
+
+        // Second Wind auto-revive (main player only)
+        if (IsMainPlayer && PowerupManager.Instance != null && PowerupManager.Instance.HasSecondWind)
+        {
+            PowerupManager.Instance.ConsumeSecondWind();
+            _currentHP = Mathf.RoundToInt(maxHP * 0.5f);
+            _invincibleUntil = Time.time + 2f; // generous i-frames on revive
+            OnPlayerHPChanged?.Invoke(_currentHP, maxHP);
+            return;
+        }
+
         _isDead = true;
 
         if (ShooterManager.Instance != null)

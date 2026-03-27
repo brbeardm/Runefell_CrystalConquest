@@ -99,7 +99,10 @@ public class PlayerShooter : MonoBehaviour
         if (IsFiringInput())
         {
             Fire();
-            _nextFireTime = Time.time + (1f / Mathf.Max(0.0001f, fireRate));
+            float effectiveFireRate = fireRate;
+            if (PowerupManager.Instance != null)
+                effectiveFireRate *= PowerupManager.Instance.FireRateMultiplier;
+            _nextFireTime = Time.time + (1f / Mathf.Max(0.0001f, effectiveFireRate));
         }
     }
 
@@ -241,7 +244,10 @@ public class PlayerShooter : MonoBehaviour
             if (useSimplePool && _pool != null)
                 pooled.SetReleaseCallback(_pool.ReturnToPool);
 
-            pooled.Damage = Mathf.RoundToInt(_baseDamage * _buffDamageMult);
+            float totalDamageMult = _buffDamageMult;
+            if (PowerupManager.Instance != null)
+                totalDamageMult *= PowerupManager.Instance.DamageMultiplier;
+            pooled.Damage = Mathf.RoundToInt(_baseDamage * totalDamageMult);
         }
 
         if (audioSource != null && fireSfx != null)

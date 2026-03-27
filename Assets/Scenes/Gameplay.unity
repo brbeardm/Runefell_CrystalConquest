@@ -627,10 +627,6 @@ MonoBehaviour:
   projectileSpeed: 25
   useSimplePool: 1
   poolSize: 20
-  heroFireRate: 12
-  heroDamage: 100
-  heroScaleMultiplier: 2
-  heroGlowColor: {r: 1, g: 0.85, b: 0.2, a: 1}
   audioSource: {fileID: 0}
   fireSfx: {fileID: 0}
 --- !u!1001 &6036327611617484050

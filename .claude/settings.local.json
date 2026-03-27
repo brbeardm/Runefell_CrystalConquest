@@ -15,7 +15,24 @@
       "Bash(grep -E \"\\\\.\\(prefab|asset\\)$\")",
       "Bash(grep -r \"boss\\\\|Boss\\\\|BOSS\" /c/users/bbear/Runefell_CrystalConquest/Assets/_Project/Scripts/ --include=*.cs)",
       "Bash(find /c/users/bbear/Runefell_CrystalConquest/Assets/_Project -name *.asset)",
-      "Bash(find C:/users/bbear/Runefell_CrystalConquest/Assets -name *.cs -newer C:/users/bbear/Runefell_CrystalConquest/Assets/_Project/Scripts/UI/UIManager.cs -not -path */Library/*)"
+      "Bash(find C:/users/bbear/Runefell_CrystalConquest/Assets -name *.cs -newer C:/users/bbear/Runefell_CrystalConquest/Assets/_Project/Scripts/UI/UIManager.cs -not -path */Library/*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"heroShooterPrefab\\\\|HeroPromotion\" /c/users/bbear/Runefell_CrystalConquest/Assets --include=*.cs)",
+      "Bash(/tmp/event_check.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(for file:*)",
+      "Bash(do)",
+      "Bash(echo \"=== $file ===\")",
+      "Read(//c/users/bbear/Runefell_CrystalConquest/**)",
+      "Bash(done)",
+      "Bash(while read:*)",
+      "Bash(do if:*)",
+      "Bash(echo \"1. Old UIManager OnDisable fires -> unsubscribes from all events\")",
+      "Bash(echo \"3. New UIManager OnEnable fires -> resubscribes\")",
+      "Bash(find . -name Enemy.cs -path *Scripts/Gameplay*)",
+      "Bash(grep -v \"//\")",
+      "Bash(then echo:*)",
+      "Bash(grep -l IEnumerator Assets/_Project/Scripts/Gameplay/*.cs)"
     ]
   }
 }

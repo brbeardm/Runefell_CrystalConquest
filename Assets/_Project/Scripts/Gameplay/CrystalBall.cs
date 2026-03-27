@@ -24,6 +24,9 @@ public class CrystalBall : MonoBehaviour
     [Tooltip("Emission intensity multiplier.")]
     [SerializeField] private float emissionIntensity = 1.5f;
 
+    /// <summary>Fired when a crystal orb is collected by the player.</summary>
+    public static event Action OnCrystalBallCollected;
+
     private int _currentHits;
     private bool _cracked;
     private Action<GameObject> _releaseCallback;
@@ -135,6 +138,7 @@ public class CrystalBall : MonoBehaviour
     private void Crack()
     {
         _cracked = true;
+        OnCrystalBallCollected?.Invoke();
 
         if (ShooterManager.Instance != null)
         {

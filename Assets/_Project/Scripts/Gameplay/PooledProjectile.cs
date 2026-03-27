@@ -13,10 +13,12 @@ public sealed class PooledProjectile : MonoBehaviour
 
     private float _spawnTime;
     private System.Action<GameObject> _releaseCallback;
+    private bool _hasPierced;
 
     private void OnEnable()
     {
         _spawnTime = Time.time;
+        _hasPierced = false;
     }
 
     private void Update()
@@ -72,6 +74,15 @@ public sealed class PooledProjectile : MonoBehaviour
 
             float hitSize = other.bounds.size.magnitude;
             ImpactVFX.Instance.SpawnImpact(transform.position, type, hitSize);
+        }
+
+        // Armor Piercing: pass through first enemy hit
+        if (enemy != null && !_hasPierced
+            && PowerupManager.Instance != null
+            && PowerupManager.Instance.IsArmorPiercingActive)
+        {
+            _hasPierced = true;
+            return; // don't release — projectile continues
         }
 
         Release();

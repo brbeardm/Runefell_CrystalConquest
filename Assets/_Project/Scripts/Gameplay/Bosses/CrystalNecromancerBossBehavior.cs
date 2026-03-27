@@ -24,6 +24,29 @@ public class CrystalNecromancerBossBehavior : BossBehavior
     /// <summary>True while the resurrection sequence is playing.</summary>
     public static bool IsResurrecting { get; private set; }
 
+    public static void ResetStaticState()
+    {
+        IsResurrecting = false;
+    }
+
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+        GameManager.OnGameOver += HandleGameOver;
+    }
+
+    protected override void OnDisable()
+    {
+        base.OnDisable();
+        GameManager.OnGameOver -= HandleGameOver;
+    }
+
+    private void HandleGameOver()
+    {
+        StopAllCoroutines();
+        IsResurrecting = false;
+    }
+
     public override void OnSpawn()
     {
         _hasResurrected = false;
@@ -45,6 +68,9 @@ public class CrystalNecromancerBossBehavior : BossBehavior
 
     private IEnumerator ResurrectionSequence()
     {
+        if (GameManager.Instance != null && GameManager.Instance.State == GameManager.GameState.GameOver)
+            yield break;
+
         Debug.Log("[Boss] NECROMANCER RESURRECTION — All enemies freeze!");
 
         IsResurrecting = true;
@@ -63,6 +89,12 @@ public class CrystalNecromancerBossBehavior : BossBehavior
             float interval = freezeDuration / resurrectCount;
             for (int i = 0; i < resurrectCount; i++)
             {
+                if (GameManager.Instance != null && GameManager.Instance.State == GameManager.GameState.GameOver)
+                {
+                    IsResurrecting = false;
+                    yield break;
+                }
+
                 float x = UnityEngine.Random.Range(
                     BridgeZoneConstants.EnemyHordeMinX,
                     BridgeZoneConstants.EnemyHordeMaxX);

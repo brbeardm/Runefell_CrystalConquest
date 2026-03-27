@@ -73,9 +73,20 @@ public class GameManager : MonoBehaviour
     public void EndGame()
     {
         if (State == GameState.GameOver || State == GameState.Victory) return;
-        Time.timeScale = 1f;
+        Debug.Log("[GameManager] EndGame called — setting GameOver state");
+        Time.timeScale = 0f; // Freeze game while death screen is showing
+        AudioListener.pause = true;
         State = GameState.GameOver;
+        Debug.Log($"[GameManager] Firing OnGameOver, subscribers: {OnGameOver?.GetInvocationList()?.Length ?? 0}");
         OnGameOver?.Invoke();
+    }
+
+    public void RevivePlayer()
+    {
+        if (State != GameState.GameOver) return;
+        State = GameState.Playing;
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
     }
 
     public void Victory()
@@ -94,6 +105,10 @@ public class GameManager : MonoBehaviour
         OnScoreChanged = null;
         OnPauseToggled = null;
         OnVictory = null;
+        CrystalNecromancerBossBehavior.ResetStaticState();
+        PlayerWallet.ResetEvents();
+        PowerupManager.ResetEvents();
+        ReviveManager.ResetEvents();
         Instance = null;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }

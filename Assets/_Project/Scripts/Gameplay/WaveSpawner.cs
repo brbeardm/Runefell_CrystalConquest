@@ -31,12 +31,14 @@ public class WaveSpawner : MonoBehaviour
     public static event Action OnAllWavesCompleted;
     public static event Action<float> OnBreatherStarted;         // breather duration
     public static event Action OnVictory;
+    public static event Action OnBossSpawned;
 
     // ── Runtime state ───────────────────────────────────
     private int _currentWaveIndex = -1;
     private int _enemiesAlive;
     private bool _spawning;
     private bool _finished;
+    private bool _gameOver;
 
     public int CurrentWave => _currentWaveIndex;
     public int TotalWaves => campaignConfig != null ? campaignConfig.totalWaves : 0;
@@ -48,6 +50,7 @@ public class WaveSpawner : MonoBehaviour
         Enemy.OnEnemyDied += HandleEnemyDied;
         GameManager.OnGameStarted += HandleGameStarted;
         GameManager.OnGameOver += HandleGameOver;
+        ReviveManager.OnReviveStarted += HandleRevive;
     }
 
     private void OnDisable()
@@ -55,6 +58,7 @@ public class WaveSpawner : MonoBehaviour
         Enemy.OnEnemyDied -= HandleEnemyDied;
         GameManager.OnGameStarted -= HandleGameStarted;
         GameManager.OnGameOver -= HandleGameOver;
+        ReviveManager.OnReviveStarted -= HandleRevive;
     }
 
     private void Start()
@@ -71,8 +75,13 @@ public class WaveSpawner : MonoBehaviour
 
     private void HandleGameOver()
     {
-        StopAllCoroutines();
-        _spawning = false;
+        _gameOver = true;
+        // Don't StopAllCoroutines — the campaign loop pauses and can resume on revive
+    }
+
+    private void HandleRevive()
+    {
+        _gameOver = false;
     }
 
     public void StartCampaign()
@@ -86,6 +95,7 @@ public class WaveSpawner : MonoBehaviour
 
         _currentWaveIndex = -1;
         _finished = false;
+        _gameOver = false;
         StartCoroutine(RunCampaign());
     }
 
@@ -128,8 +138,8 @@ public class WaveSpawner : MonoBehaviour
                 StartCoroutine(SpawnBosses(w, wp));
             }
 
-            // Wait until every enemy in this wave is dead
-            while (_enemiesAlive > 0)
+            // Wait until every enemy in this wave is dead (pauses during game-over for revive)
+            while (_enemiesAlive > 0 || _gameOver)
                 yield return null;
 
             _spawning = false;
@@ -221,6 +231,9 @@ public class WaveSpawner : MonoBehaviour
             if (baseData != null)
                 enemy.InitializeScaled(baseData, wp.bossHP, wp.bossSpeed);
         }
+
+        if (enemy != null)
+            OnBossSpawned?.Invoke();
 
         return enemy;
     }

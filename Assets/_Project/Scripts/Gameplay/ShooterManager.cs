@@ -23,10 +23,15 @@ public class ShooterManager : MonoBehaviour
     [Tooltip("Maximum total shooters (player + clones). 10 = player + 9 clones.")]
     [SerializeField] private int maxShooters = 10;
 
+    [Header("Player (for revive respawn)")]
+    [SerializeField] private GameObject playerPrefab;
+
     private readonly List<GameObject> _shooters = new List<GameObject>();
     private readonly List<GameObject> _clones = new List<GameObject>();
     private Transform _playerTransform;
     private GameObject _playerObject;
+    private Vector3 _playerSpawnPos;
+    private Quaternion _playerSpawnRot;
 
     public int ShooterCount => _shooters.Count;
     public int CloneCount => _clones.Count;
@@ -49,6 +54,8 @@ public class ShooterManager : MonoBehaviour
         {
             _playerTransform = player.transform;
             _playerObject = player.gameObject;
+            _playerSpawnPos = player.transform.position;
+            _playerSpawnRot = player.transform.rotation;
         }
         Debug.Log($"[ShooterManager] cloneXSpacing = {cloneXSpacing} — if this is not 0.15, update it in the Inspector!");
     }
@@ -173,6 +180,27 @@ public class ShooterManager : MonoBehaviour
 
         if (GameManager.Instance != null)
             GameManager.Instance.EndGame();
+    }
+
+    /// <summary>
+    /// Re-instantiates the player at their original spawn position after revive.
+    /// </summary>
+    public void RespawnPlayer()
+    {
+        if (_playerObject != null) return; // already alive
+
+        if (playerPrefab == null)
+        {
+            Debug.LogError("[ShooterManager] No playerPrefab assigned — cannot respawn!");
+            return;
+        }
+
+        GameObject player = Instantiate(playerPrefab, _playerSpawnPos, _playerSpawnRot);
+        _playerTransform = player.transform;
+        _playerObject = player;
+
+        // ShooterHealth.Awake sets HP to max automatically
+        Debug.Log("[ShooterManager] Player respawned!");
     }
 
     private void RepositionClones()

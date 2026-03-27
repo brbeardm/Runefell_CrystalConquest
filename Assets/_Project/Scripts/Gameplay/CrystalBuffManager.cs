@@ -35,11 +35,20 @@ public class CrystalBuffManager : MonoBehaviour
     private void OnEnable()
     {
         HeroCrystal.OnCrystalBroken += HandleCrystalBroken;
+        GameManager.OnGameOver += HandleGameOver;
     }
 
     private void OnDisable()
     {
         HeroCrystal.OnCrystalBroken -= HandleCrystalBroken;
+        GameManager.OnGameOver -= HandleGameOver;
+    }
+
+    private void HandleGameOver()
+    {
+        StopAllCoroutines();
+        IsBuffActive = false;
+        BuffTimeRemaining = 0f;
     }
 
     private void HandleCrystalBroken(float fireRateMult, float damageMult, float duration)
