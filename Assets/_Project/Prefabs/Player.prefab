@@ -1459,6 +1459,7 @@ GameObject:
   - component: {fileID: 6509402534868596030}
   - component: {fileID: 3258699778048483740}
   - component: {fileID: 2764530559960068949}
+  - component: {fileID: 6845101392472794404}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -1731,6 +1732,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimationDriver
   animator: {fileID: 5389411310929938631}
   moveThreshold: 0.05
+--- !u!95 &6845101392472794404
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8560075355858105371}
+  m_Enabled: 1
+  m_Avatar: {fileID: 9000000, guid: 59868cd701717344084578d1ca422d0d, type: 3}
+  m_Controller: {fileID: 9100000, guid: c899e005ac3638a41bb29ad992618e52, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &1991044727921915222
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections;
 
 public class ShooterHealth : MonoBehaviour
 {
@@ -14,6 +15,11 @@ public class ShooterHealth : MonoBehaviour
     public static event Action<int, int> OnPlayerHPChanged;
 
     public bool IsMainPlayer => GetComponent<PlayerShooter>() != null;
+
+    public void GrantInvincibility(float duration)
+    {
+        _invincibleUntil = Time.time + duration;
+    }
 
     private void Awake()
     {
@@ -125,5 +131,64 @@ public class ShooterHealth : MonoBehaviour
             ShooterManager.Instance.RemoveShooter(gameObject);
 
         Destroy(gameObject);
+    }
+
+    /// <summary>
+    /// Cinematic death — plays death animation, disables shooting, delays destruction.
+    /// Used by boss death strike for theatrical effect.
+    /// </summary>
+    /// <summary>
+    /// Cinematic death — plays death animation, waits for it to finish, then calls EndGame.
+    /// Everything is serial: animation plays → wait → game over screen.
+    /// Call via StartCoroutine from the boss death strike.
+    /// </summary>
+    public IEnumerator PlayDeathCinematicRoutine(float animDuration)
+    {
+        if (_isDead) yield break;
+        _isDead = true;
+
+        _currentHP = 0;
+        OnPlayerHPChanged?.Invoke(0, maxHP);
+
+        // Disable shooting
+        var shooter = GetComponent<PlayerShooter>();
+        if (shooter != null)
+            shooter.enabled = false;
+
+        // Disable collider
+        var col = GetComponent<Collider>();
+        if (col != null)
+            col.enabled = false;
+
+        // Find the Animator that has a controller
+        Animator anim = null;
+        foreach (var a in GetComponentsInChildren<Animator>())
+        {
+            if (a.runtimeAnimatorController != null)
+            {
+                anim = a;
+                break;
+            }
+        }
+
+        if (anim != null)
+        {
+            anim.updateMode = AnimatorUpdateMode.UnscaledTime;
+            anim.Play("Death", 0, 0f);
+            Debug.Log($"[PlayerDeath] Death animation started on '{anim.gameObject.name}'");
+        }
+
+        // Remove from shooter manager so respawn works on revive
+        if (ShooterManager.Instance != null)
+            ShooterManager.Instance.RemoveShooter(gameObject);
+
+        // WAIT for the animation to play — this is the serial part
+        yield return new WaitForSecondsRealtime(animDuration);
+
+        Debug.Log("[PlayerDeath] Death animation complete, calling EndGame");
+
+        // NOW show game over / revive screen
+        if (GameManager.Instance != null)
+            GameManager.Instance.EndGame();
     }
 }

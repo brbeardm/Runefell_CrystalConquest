@@ -46,16 +46,29 @@ public class ReviveManager : MonoBehaviour
         );
     }
 
+    [SerializeField] private float reviveInvincibilityDuration = 3f;
+
     private void PerformRevive()
     {
         if (GameManager.Instance != null)
             GameManager.Instance.RevivePlayer();
 
         if (ShooterManager.Instance != null)
+        {
             ShooterManager.Instance.RespawnPlayer();
 
+            // Grant extended invincibility so the player can recover
+            var playerHealth = ShooterManager.Instance.PlayerObject?.GetComponent<ShooterHealth>();
+            if (playerHealth != null)
+                playerHealth.GrantInvincibility(reviveInvincibilityDuration);
+        }
+
+        // Crystal shockwave — expanding blast that kills nearby enemies
+        var player = ShooterManager.Instance?.PlayerObject;
+        if (player != null)
+            ReviveBlast.Fire(player.transform.position);
+
         OnReviveStarted?.Invoke();
-        Debug.Log("[Revive] Player revived!");
     }
 
     public static void ResetEvents()

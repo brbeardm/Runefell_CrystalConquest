@@ -36,6 +36,10 @@ public class ShooterManager : MonoBehaviour
     public int ShooterCount => _shooters.Count;
     public int CloneCount => _clones.Count;
     public int MaxShooters => maxShooters;
+    public GameObject PlayerObject => _playerObject;
+
+    /// <summary>When true, player death does not trigger EndGame. Used by boss death strike cinematic.</summary>
+    public bool SuppressGameOver { get; set; }
 
     private void Awake()
     {
@@ -89,9 +93,9 @@ public class ShooterManager : MonoBehaviour
         RepositionClones();
 
         // Only end game if the MAIN PLAYER is destroyed — never for clones
-        if (!isClone && shooter == _playerObject && GameManager.Instance != null)
+        // SuppressGameOver is set during boss death strike cinematic
+        if (!isClone && shooter == _playerObject && GameManager.Instance != null && !SuppressGameOver)
         {
-            Debug.Log("[ShooterManager] Main player destroyed — Game Over");
             GameManager.Instance.EndGame();
         }
         else if (isClone)

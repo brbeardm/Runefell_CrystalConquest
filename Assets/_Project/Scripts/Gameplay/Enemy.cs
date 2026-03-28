@@ -25,6 +25,9 @@ public class Enemy : MonoBehaviour
     public int MaxHealth => _maxHealth;
     public float MoveSpeed => _overrideSpeed > 0 ? _overrideSpeed : (data != null ? data.moveSpeed : 0f);
 
+    /// <summary>When true, Enemy.Update() skips default movement. BossBehavior controls position directly.</summary>
+    public bool MovementOverridden { get; set; }
+
     public void Initialize(EnemyData enemyData, Action<GameObject> releaseCallback = null)
     {
         data = enemyData;
@@ -59,6 +62,9 @@ public class Enemy : MonoBehaviour
 
         // Freeze during Necromancer resurrection
         if (CrystalNecromancerBossBehavior.IsResurrecting) return;
+
+        // Boss behavior is controlling movement directly
+        if (MovementOverridden) return;
 
         // HP regen (used by Crystal Troll boss)
         if (data.healthRegenRate > 0 && _currentHealth < _maxHealth)
@@ -125,6 +131,9 @@ public class Enemy : MonoBehaviour
         }
     }
 
+    /// <summary>When true, Die() skips immediate destruction. Boss calls ForceDestroy() after death animation.</summary>
+    public bool DelayDestruction { get; set; }
+
     private void Die()
     {
         _isDead = true;
@@ -136,6 +145,18 @@ public class Enemy : MonoBehaviour
 
         OnEnemyDied?.Invoke(this);
 
+        // Animated bosses delay destruction for the dying animation
+        if (DelayDestruction) return;
+
+        if (_releaseCallback != null)
+            _releaseCallback(gameObject);
+        else
+            Destroy(gameObject);
+    }
+
+    /// <summary>Force destroy after delayed death animation completes.</summary>
+    public void ForceDestroy()
+    {
         if (_releaseCallback != null)
             _releaseCallback(gameObject);
         else
@@ -165,6 +186,9 @@ public class Enemy : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         // NOTE: Projectile damage is handled authoritatively in PooledProjectile.OnTriggerEnter.
+
+        // Animated bosses handle player contact via their death strike coroutine
+        if (MovementOverridden && data != null && data.isInstantKill) return;
 
         // Contact with shooter
         if (other.CompareTag("Player"))

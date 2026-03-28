@@ -280,20 +280,24 @@ public class PlayerShooter : MonoBehaviour
         fireRate = _baseFireRate;
     }
 
+    /// <summary>
+    /// Returns true only when the pointer is over a blocking UI panel
+    /// (RevivePanel, GameOver, Victory, Pause) — NOT the gameplay HUD.
+    /// This lets the player keep shooting while hovering over powerup buttons.
+    /// </summary>
     private bool IsPointerOverUI()
     {
         if (EventSystem.current == null) return false;
 
-        // Legacy mouse pointer check
+        var pointerData = new PointerEventData(EventSystem.current);
+        var results = new System.Collections.Generic.List<RaycastResult>();
+
         try
         {
-            if (Input.mousePresent && EventSystem.current.IsPointerOverGameObject())
-                return true;
-
-            for (int i = 0; i < Input.touchCount; i++)
+            if (Input.mousePresent)
             {
-                if (EventSystem.current.IsPointerOverGameObject(Input.GetTouch(i).fingerId))
-                    return true;
+                pointerData.position = Input.mousePosition;
+                EventSystem.current.RaycastAll(pointerData, results);
             }
         }
         catch (System.InvalidOperationException)
@@ -302,11 +306,38 @@ public class PlayerShooter : MonoBehaviour
         }
 
 #if ENABLE_INPUT_SYSTEM
-        // New Input System mouse pointer check
-        if (Mouse.current != null && EventSystem.current.IsPointerOverGameObject())
-            return true;
+        if (results.Count == 0 && Mouse.current != null)
+        {
+            pointerData.position = Mouse.current.position.ReadValue();
+            EventSystem.current.RaycastAll(pointerData, results);
+        }
 #endif
 
+        // Only block shooting for full-screen overlay panels, not the HUD
+        for (int i = 0; i < results.Count; i++)
+        {
+            var obj = results[i].gameObject;
+            if (IsBlockingPanel(obj))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsBlockingPanel(GameObject obj)
+    {
+        // Walk up the hierarchy looking for known blocking panels
+        var t = obj.transform;
+        while (t != null)
+        {
+            var name = t.gameObject.name;
+            if (name == "RevivePanel" ||
+                name == "GameOverPanel" ||
+                name == "VictoryPanel" ||
+                name == "PausePanel")
+                return true;
+            t = t.parent;
+        }
         return false;
     }
 }

@@ -90,7 +90,28 @@ public class PowerupHUD : MonoBehaviour
             }
         }
 
+        // Disable raycastTarget on non-button elements so they don't
+        // steal input from shooting when the player hovers over the HUD
+        DisableNonButtonRaycasts();
+
         UpdateCurrencyDisplay(PlayerWallet.Gems, PlayerWallet.Runes);
+    }
+
+    private void DisableNonButtonRaycasts()
+    {
+        // Currency text
+        if (gemCountText != null) gemCountText.raycastTarget = false;
+        if (runeCountText != null) runeCountText.raycastTarget = false;
+
+        // Cost texts and timer overlays
+        for (int i = 0; i < 8; i++)
+        {
+            if (i < powerupCostTexts.Length && powerupCostTexts[i] != null)
+                powerupCostTexts[i].raycastTarget = false;
+
+            if (i < timerOverlays.Length && timerOverlays[i] != null)
+                timerOverlays[i].raycastTarget = false;
+        }
     }
 
     private void OnPowerupClicked(PowerupType type)

@@ -93,6 +93,7 @@ public class WaveSpawner : MonoBehaviour
             return;
         }
 
+        _spawning = true; // Guard immediately to prevent duplicate campaign starts
         _currentWaveIndex = -1;
         _finished = false;
         _gameOver = false;

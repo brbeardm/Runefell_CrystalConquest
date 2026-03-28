@@ -15,18 +15,18 @@ MonoBehaviour:
   totalWaves: 9
   waves:
   - waveName: The Orc Horde
-    orcCount: 400
+    orcCount: 800
     orcHP: 30
     orcSpeed: 1.6
     orcSpawnInterval: 0.4
     bossHP: 800
     bossSpeed: 0.8
-    bossSpawnDelay: 40
+    bossSpawnDelay: 5
     crystalHitsToBreak: 50
     buffDuration: 30
     breatherSeconds: 8
   - waveName: Troll Assault
-    orcCount: 500
+    orcCount: 1000
     orcHP: 35
     orcSpeed: 1.8
     orcSpawnInterval: 0.34
@@ -37,7 +37,7 @@ MonoBehaviour:
     buffDuration: 28
     breatherSeconds: 7
   - waveName: Wraith Shadows
-    orcCount: 600
+    orcCount: 1200
     orcHP: 40
     orcSpeed: 2
     orcSpawnInterval: 0.3
@@ -48,7 +48,7 @@ MonoBehaviour:
     buffDuration: 26
     breatherSeconds: 7
   - waveName: Sorcerer's Gambit
-    orcCount: 650
+    orcCount: 1300
     orcHP: 45
     orcSpeed: 2.2
     orcSpawnInterval: 0.28
@@ -59,7 +59,7 @@ MonoBehaviour:
     buffDuration: 25
     breatherSeconds: 6
   - waveName: Crystal Orc Siege
-    orcCount: 750
+    orcCount: 1500
     orcHP: 50
     orcSpeed: 2.4
     orcSpawnInterval: 0.26
@@ -70,7 +70,7 @@ MonoBehaviour:
     buffDuration: 24
     breatherSeconds: 6
   - waveName: Crystal Troll Fury
-    orcCount: 850
+    orcCount: 1700
     orcHP: 55
     orcSpeed: 2.6
     orcSpawnInterval: 0.24
@@ -81,7 +81,7 @@ MonoBehaviour:
     buffDuration: 22
     breatherSeconds: 5
   - waveName: Crystal Wraith Haunting
-    orcCount: 950
+    orcCount: 1900
     orcHP: 60
     orcSpeed: 2.8
     orcSpawnInterval: 0.22
@@ -92,7 +92,7 @@ MonoBehaviour:
     buffDuration: 21
     breatherSeconds: 5
   - waveName: Crystal Sorcerer Onslaught
-    orcCount: 1050
+    orcCount: 2100
     orcHP: 70
     orcSpeed: 3
     orcSpawnInterval: 0.2
@@ -103,7 +103,7 @@ MonoBehaviour:
     buffDuration: 20
     breatherSeconds: 4
   - waveName: Crystal Necromancer Rising
-    orcCount: 1250
+    orcCount: 2500
     orcHP: 80
     orcSpeed: 3.2
     orcSpawnInterval: 0.18

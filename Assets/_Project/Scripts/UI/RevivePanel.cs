@@ -29,7 +29,6 @@ public class RevivePanel : MonoBehaviour
     {
         GameManager.OnGameOver += ShowPanel;
         ReviveManager.OnReviveStarted += HidePanel;
-        Debug.Log("[RevivePanel] Subscribed to OnGameOver");
     }
 
     private void OnDisable()
@@ -55,16 +54,11 @@ public class RevivePanel : MonoBehaviour
 
     private void ShowPanel()
     {
-        Debug.Log($"[RevivePanel] ShowPanel called! panel={panel}, panel is null={panel == null}");
+        // Don't show during editor shutdown or scene unload
+        if (!gameObject.scene.isLoaded) return;
+
         if (panel != null)
-        {
             panel.SetActive(true);
-            Debug.Log($"[RevivePanel] Panel activated: {panel.activeSelf}");
-        }
-        else
-        {
-            Debug.LogError("[RevivePanel] Panel reference is NULL — not assigned in Inspector!");
-        }
 
         // Update gem revive button
         if (ReviveManager.Instance != null)

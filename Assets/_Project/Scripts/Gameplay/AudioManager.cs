@@ -20,11 +20,20 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip victorySfx;
     [SerializeField] private AudioClip gameOverSfx;
 
+    [Header("Boss Animated")]
+    [SerializeField] private AudioClip bossRoarSfx;
+    [SerializeField] private AudioClip bossIntimidationSfx;
+
+    [Header("Revive")]
+    [SerializeField] private AudioClip reviveBlastSfx;
+    [SerializeField] private float reviveDuckDuration = 1.2f;
+
     [Header("Combat")]
     [SerializeField] private AudioClip playerDamageSfx;
     [SerializeField] private AudioClip enemyDeathSfx;
 
     private AudioSource _audioSource;
+    private AudioSource _reviveSource;
     private int _lastKnownHP = 100;
 
     private void Awake()
@@ -42,6 +51,12 @@ public class AudioManager : MonoBehaviour
 
         _audioSource.playOnAwake = false;
         _audioSource.spatialBlend = 0f;
+
+        // Dedicated source for revive blast — ignores listener volume so it cuts through the duck
+        _reviveSource = gameObject.AddComponent<AudioSource>();
+        _reviveSource.playOnAwake = false;
+        _reviveSource.spatialBlend = 0f;
+        _reviveSource.ignoreListenerVolume = true;
     }
 
     private void OnEnable()
@@ -54,6 +69,9 @@ public class AudioManager : MonoBehaviour
         CrystalBuffManager.OnBuffExpired += HandleBuffExpired;
         GameManager.OnVictory += HandleVictory;
         GameManager.OnGameOver += HandleGameOver;
+        ReviveManager.OnReviveStarted += HandleReviveBlast;
+        AnimatedBossBehavior.OnBossRoar += HandleBossRoar;
+        AnimatedBossBehavior.OnBossIntimidationKill += HandleBossIntimidation;
         ShooterHealth.OnPlayerHPChanged += HandlePlayerHPChanged;
         Enemy.OnEnemyDied += HandleEnemyDied;
     }
@@ -68,6 +86,9 @@ public class AudioManager : MonoBehaviour
         CrystalBuffManager.OnBuffExpired -= HandleBuffExpired;
         GameManager.OnVictory -= HandleVictory;
         GameManager.OnGameOver -= HandleGameOver;
+        ReviveManager.OnReviveStarted -= HandleReviveBlast;
+        AnimatedBossBehavior.OnBossRoar -= HandleBossRoar;
+        AnimatedBossBehavior.OnBossIntimidationKill -= HandleBossIntimidation;
         ShooterHealth.OnPlayerHPChanged -= HandlePlayerHPChanged;
         Enemy.OnEnemyDied -= HandleEnemyDied;
     }
@@ -95,4 +116,38 @@ public class AudioManager : MonoBehaviour
     }
 
     private void HandleEnemyDied(Enemy enemy) => PlayClip(enemyDeathSfx);
+
+    private void HandleBossRoar() => PlayClip(bossRoarSfx);
+    private void HandleBossIntimidation() => PlayClip(bossIntimidationSfx);
+
+    private void HandleReviveBlast()
+    {
+        if (reviveBlastSfx != null && _reviveSource != null)
+            _reviveSource.PlayOneShot(reviveBlastSfx);
+        StartCoroutine(DuckAudioForBlast());
+    }
+
+    private System.Collections.IEnumerator DuckAudioForBlast()
+    {
+        float savedVolume = AudioListener.volume;
+        AudioListener.volume = 0.05f; // near-silence for everything else
+
+        float elapsed = 0f;
+        while (elapsed < reviveDuckDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        // Fade back in over 0.3s
+        float fadeTime = 0.3f;
+        float fadeElapsed = 0f;
+        while (fadeElapsed < fadeTime)
+        {
+            fadeElapsed += Time.unscaledDeltaTime;
+            AudioListener.volume = Mathf.Lerp(0.05f, savedVolume, fadeElapsed / fadeTime);
+            yield return null;
+        }
+        AudioListener.volume = savedVolume;
+    }
 }

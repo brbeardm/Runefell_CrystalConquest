@@ -14,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyData
   displayName: Orc Boss
   isBoss: 1
-  maxHealth: 200
-  moveSpeed: 1
+  maxHealth: 500
+  moveSpeed: 0.5
   contactDamage: 999
   isInstantKill: 1
   healthRegenRate: 0
-  scaleMultiplier: 5
+  scaleMultiplier: 2
   scoreValue: 100
   powerUpDropChance: 0.05

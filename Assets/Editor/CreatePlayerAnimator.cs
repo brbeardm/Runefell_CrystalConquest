@@ -2,65 +2,104 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 
+/// <summary>
+/// Creates a Player Animator Controller with Aim (idle) and Death states.
+/// Menu: Tools > Create Player Animator Controller
+/// </summary>
 public class CreatePlayerAnimator
 {
+    [MenuItem("Tools/Create Player Animator Controller")]
     public static void Execute()
     {
-        string path = "Assets/_Project/Prefabs/Shooters/PlayerAnimator.controller";
-        
-        // Create Animator Controller
-        AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(path);
-        
-        // Add Parameter
-        controller.AddParameter("IsMoving", AnimatorControllerParameterType.Bool);
-        
-        // Get Root State Machine
-        AnimatorStateMachine rootStateMachine = controller.layers[0].stateMachine;
-        
-        // Create States
-        AnimatorState idleState = rootStateMachine.AddState("Idle");
-        AnimatorState runState = rootStateMachine.AddState("Run");
-        
-        // Set Default State
-        rootStateMachine.defaultState = idleState;
-        
-        // Find Idle Animation from Player1.fbx
-        string fbxPath = "Assets/Characters/Player1.fbx";
-        Object[] assets = AssetDatabase.LoadAllAssetsAtPath(fbxPath);
-        AnimationClip idleClip = null;
-        foreach (Object asset in assets)
+        if (!AssetDatabase.IsValidFolder("Assets/_Project/Animations"))
         {
-            if (asset is AnimationClip && asset.name == "Idle")
+            if (!AssetDatabase.IsValidFolder("Assets/_Project"))
+                AssetDatabase.CreateFolder("Assets", "_Project");
+            AssetDatabase.CreateFolder("Assets/_Project", "Animations");
+        }
+
+        string controllerPath = "Assets/_Project/Animations/PlayerController.controller";
+
+        var aimClip = FindClip("Assets/Characters/Player1_aim.fbx");
+        var deathClip = FindClip("Assets/Characters/Player1_Death.fbx");
+
+        var controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+
+        controller.AddParameter("Die", AnimatorControllerParameterType.Trigger);
+
+        var rootSM = controller.layers[0].stateMachine;
+
+        // Aim state (default, looping)
+        var aimState = rootSM.AddState("Aim", new Vector3(250, 0, 0));
+        if (aimClip != null)
+        {
+            aimState.motion = aimClip;
+            SetClipLooping(aimClip, true);
+        }
+        rootSM.defaultState = aimState;
+
+        // Death state (one-shot, no exit)
+        var deathState = rootSM.AddState("Death", new Vector3(250, 150, 0));
+        if (deathClip != null)
+        {
+            deathState.motion = deathClip;
+            SetClipLooping(deathClip, false);
+        }
+
+        // Any State → Death (trigger)
+        var anyToDeath = rootSM.AddAnyStateTransition(deathState);
+        anyToDeath.AddCondition(AnimatorConditionMode.If, 0, "Die");
+        anyToDeath.hasExitTime = false;
+        anyToDeath.duration = 0.1f;
+
+        EditorUtility.SetDirty(controller);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
+        Debug.Log($"PlayerController created at {controllerPath}" +
+            $" — Aim:{(aimClip != null ? "OK" : "MISSING")}" +
+            $" Death:{(deathClip != null ? "OK" : "MISSING")}");
+    }
+
+    private static AnimationClip FindClip(string path)
+    {
+        var objects = AssetDatabase.LoadAllAssetsAtPath(path);
+        if (objects == null) return null;
+
+        foreach (var obj in objects)
+        {
+            if (obj is AnimationClip clip && !clip.name.StartsWith("__preview__"))
+                return clip;
+        }
+        return null;
+    }
+
+    private static void SetClipLooping(AnimationClip clip, bool loop)
+    {
+        string path = AssetDatabase.GetAssetPath(clip);
+        if (string.IsNullOrEmpty(path)) return;
+
+        var importer = AssetImporter.GetAtPath(path) as ModelImporter;
+        if (importer == null) return;
+
+        var clips = importer.clipAnimations;
+        if (clips.Length == 0)
+            clips = importer.defaultClipAnimations;
+
+        bool changed = false;
+        foreach (var c in clips)
+        {
+            if (c.loopTime != loop)
             {
-                idleClip = asset as AnimationClip;
-                break;
+                c.loopTime = loop;
+                changed = true;
             }
         }
-        
-        if (idleClip != null)
+
+        if (changed)
         {
-            idleState.motion = idleClip;
-            Debug.Log("Assigned Idle clip to Idle state.");
+            importer.clipAnimations = clips;
+            importer.SaveAndReimport();
         }
-        else
-        {
-            Debug.LogWarning("Could not find Idle clip in Player1.fbx.");
-        }
-        
-        // Create Transitions
-        // Idle -> Run
-        AnimatorStateTransition idleToRun = idleState.AddTransition(runState);
-        idleToRun.AddCondition(AnimatorConditionMode.If, 0, "IsMoving");
-        idleToRun.hasExitTime = false;
-        idleToRun.duration = 0.1f;
-        
-        // Run -> Idle
-        AnimatorStateTransition runToIdle = runState.AddTransition(idleState);
-        runToIdle.AddCondition(AnimatorConditionMode.IfNot, 0, "IsMoving");
-        runToIdle.hasExitTime = false;
-        runToIdle.duration = 0.1f;
-        
-        AssetDatabase.SaveAssets();
-        Debug.Log("Successfully created PlayerAnimator and set up states/transitions.");
     }
 }

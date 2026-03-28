@@ -73,11 +73,10 @@ public class GameManager : MonoBehaviour
     public void EndGame()
     {
         if (State == GameState.GameOver || State == GameState.Victory) return;
-        Debug.Log("[GameManager] EndGame called — setting GameOver state");
+        Debug.Log($"[GameManager] EndGame called!\n{System.Environment.StackTrace}");
         Time.timeScale = 0f; // Freeze game while death screen is showing
         AudioListener.pause = true;
         State = GameState.GameOver;
-        Debug.Log($"[GameManager] Firing OnGameOver, subscribers: {OnGameOver?.GetInvocationList()?.Length ?? 0}");
         OnGameOver?.Invoke();
     }
 
@@ -109,8 +108,18 @@ public class GameManager : MonoBehaviour
         PlayerWallet.ResetEvents();
         PowerupManager.ResetEvents();
         ReviveManager.ResetEvents();
+        AnimatedBossBehavior.ResetEvents();
         Instance = null;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    private void OnApplicationQuit()
+    {
+        OnGameStarted = null;
+        OnGameOver = null;
+        OnScoreChanged = null;
+        OnPauseToggled = null;
+        OnVictory = null;
     }
 
     public void AddScore(int amount)

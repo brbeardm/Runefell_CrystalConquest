@@ -14,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyData
   displayName: Troll Boss
   isBoss: 1
-  maxHealth: 200
+  maxHealth: 1000
   moveSpeed: 1
   contactDamage: 999
   isInstantKill: 1
   healthRegenRate: 0
-  scaleMultiplier: 5
+  scaleMultiplier: 2.1
   scoreValue: 150
   powerUpDropChance: 0.05
