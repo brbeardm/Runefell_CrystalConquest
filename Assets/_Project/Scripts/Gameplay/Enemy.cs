@@ -112,6 +112,10 @@ public class Enemy : MonoBehaviour
         pos.x = Mathf.Clamp(pos.x, crystalWallX, BridgeZoneConstants.EnemyHordeMaxX);
 
         transform.position = pos;
+
+        // Destroy enemies that walk off the bridge past the player
+        if (pos.z < -15f)
+            Die();
     }
 
     public void TakeDamage(int amount)

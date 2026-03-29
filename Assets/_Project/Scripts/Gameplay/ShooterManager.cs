@@ -187,12 +187,24 @@ public class ShooterManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Re-instantiates the player at their original spawn position after revive.
+    /// Revives the existing dead player in-place, or instantiates a new one if destroyed.
     /// </summary>
     public void RespawnPlayer()
     {
-        if (_playerObject != null) return; // already alive
+        // If the player object still exists (cinematic death doesn't destroy it), revive in-place
+        if (_playerObject != null)
+        {
+            var health = _playerObject.GetComponent<ShooterHealth>();
+            if (health != null)
+            {
+                health.Revive();
+                RegisterShooter(_playerObject);
+                Debug.Log("[ShooterManager] Player revived in-place!");
+                return;
+            }
+        }
 
+        // Player was destroyed (e.g. normal Kill path) — instantiate fresh
         if (playerPrefab == null)
         {
             Debug.LogError("[ShooterManager] No playerPrefab assigned — cannot respawn!");
@@ -203,8 +215,7 @@ public class ShooterManager : MonoBehaviour
         _playerTransform = player.transform;
         _playerObject = player;
 
-        // ShooterHealth.Awake sets HP to max automatically
-        Debug.Log("[ShooterManager] Player respawned!");
+        Debug.Log("[ShooterManager] Player respawned from prefab!");
     }
 
     private void RepositionClones()

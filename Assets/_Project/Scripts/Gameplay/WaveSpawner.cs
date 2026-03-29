@@ -25,6 +25,13 @@ public class WaveSpawner : MonoBehaviour
     [SerializeField] private bool autoStart = true;
     [SerializeField] private float initialDelay = 3f;
 
+    [Header("Debug")]
+    [Tooltip("Skip to this wave index on start (0 = normal, 1 = wave 2, etc). Set to 0 for release.")]
+    [SerializeField] private int debugStartWave = 0;
+
+    [Header("Spawn Director")]
+    [SerializeField] private SpawnDirector spawnDirector;
+
     // ── Events ──────────────────────────────────────────
     public static event Action<int, string> OnWaveStarted;      // waveIndex (0-based), waveName
     public static event Action<int> OnWaveCompleted;             // waveIndex
@@ -35,15 +42,24 @@ public class WaveSpawner : MonoBehaviour
 
     // ── Runtime state ───────────────────────────────────
     private int _currentWaveIndex = -1;
-    private int _enemiesAlive;
+    private int _bossesAlive;
     private bool _spawning;
     private bool _finished;
     private bool _gameOver;
+    private bool _bossReadyFlag;
 
     public int CurrentWave => _currentWaveIndex;
     public int TotalWaves => campaignConfig != null ? campaignConfig.totalWaves : 0;
-    public int EnemiesAlive => _enemiesAlive;
     public bool IsFinished => _finished;
+
+    /// <summary>Total enemies alive (director orcs + bosses).</summary>
+    public int EnemiesAlive => (spawnDirector != null ? spawnDirector.EnemiesAliveCount : 0) + _bossesAlive;
+
+    private void Awake()
+    {
+        if (spawnDirector == null)
+            spawnDirector = GetComponent<SpawnDirector>();
+    }
 
     private void OnEnable()
     {
@@ -76,7 +92,6 @@ public class WaveSpawner : MonoBehaviour
     private void HandleGameOver()
     {
         _gameOver = true;
-        // Don't StopAllCoroutines — the campaign loop pauses and can resume on revive
     }
 
     private void HandleRevive()
@@ -93,7 +108,7 @@ public class WaveSpawner : MonoBehaviour
             return;
         }
 
-        _spawning = true; // Guard immediately to prevent duplicate campaign starts
+        _spawning = true;
         _currentWaveIndex = -1;
         _finished = false;
         _gameOver = false;
@@ -104,11 +119,11 @@ public class WaveSpawner : MonoBehaviour
     {
         yield return new WaitForSeconds(initialDelay);
 
-        for (int w = 0; w < campaignConfig.totalWaves; w++)
+        for (int w = debugStartWave; w < campaignConfig.totalWaves; w++)
         {
             var wp = campaignConfig.GetWave(w);
 
-            // Breather period (no enemies, player can shoot crystal)
+            // Breather period
             if (wp.breatherSeconds > 0)
             {
                 OnBreatherStarted?.Invoke(wp.breatherSeconds);
@@ -117,8 +132,8 @@ public class WaveSpawner : MonoBehaviour
 
             // Start wave
             _currentWaveIndex = w;
-            _enemiesAlive = 0;
-            _spawning = true;
+            _bossesAlive = 0;
+            _bossReadyFlag = false;
 
             string waveName = $"Wave {w + 1}: {wp.waveName}";
             OnWaveStarted?.Invoke(w, waveName);
@@ -127,27 +142,52 @@ public class WaveSpawner : MonoBehaviour
             if (HeroCrystal.Instance != null)
                 HeroCrystal.Instance.SetWaveScaling(wp.crystalHitsToBreak, wp.buffDuration);
 
-            // Spawn orc flood
-            int orcCount = wp.orcCount;
-            _enemiesAlive += orcCount;
-            StartCoroutine(SpawnOrcFlood(wp));
+            // Start adaptive spawning
+            int waveIndex = w;
+            spawnDirector.BeginWave(wp,
+                spawnOrcCallback: (waveParams) => SpawnScaledOrc(waveParams),
+                onBossReady: () =>
+                {
+                    _bossReadyFlag = true;
+                }
+            );
 
-            // Spawn 2 bosses after delay
-            if (w < bossPrefabs.Length && bossPrefabs[w] != null)
+            // Wait for boss trigger from spawn director
+            while (!_bossReadyFlag)
             {
-                _enemiesAlive += 2;
-                StartCoroutine(SpawnBosses(w, wp));
+                if (_gameOver) yield return null;
+                yield return null;
             }
 
-            // Wait until every enemy in this wave is dead (pauses during game-over for revive)
-            while (_enemiesAlive > 0 || _gameOver)
+            // Spawn bosses
+            if (waveIndex < bossPrefabs.Length && bossPrefabs[waveIndex] != null)
+            {
+                _bossesAlive += 2;
+                Debug.Log($"[WaveSpawner] Spawning bosses for wave {w + 1}, _bossesAlive={_bossesAlive}");
+                StartCoroutine(SpawnBosses(waveIndex, wp));
+            }
+            else
+            {
+                Debug.Log($"[WaveSpawner] No boss prefab for wave {w + 1}, skipping bosses");
+            }
+
+            // Wait until bosses are dead (remaining orc budget is forfeit once bosses fall)
+            while (_bossesAlive > 0 || _gameOver)
+                yield return null;
+
+            Debug.Log($"[WaveSpawner] All bosses dead! Stopping director, clearing bridge. EnemiesAlive={spawnDirector.EnemiesAliveCount}");
+
+            // Bosses down — stop spawning leftover orcs and wait for bridge to clear
+            spawnDirector.StopWave();
+            while (spawnDirector.EnemiesAliveCount > 0)
                 yield return null;
 
             _spawning = false;
+            Debug.Log($"[WaveSpawner] Wave {w + 1} COMPLETE!");
             OnWaveCompleted?.Invoke(w);
         }
 
-        // All 9 waves cleared — VICTORY!
+        // All waves cleared — VICTORY!
         _finished = true;
         OnAllWavesCompleted?.Invoke();
         OnVictory?.Invoke();
@@ -156,20 +196,9 @@ public class WaveSpawner : MonoBehaviour
             GameManager.Instance.Victory();
     }
 
-    private IEnumerator SpawnOrcFlood(WaveScalingConfig.WaveParams wp)
-    {
-        for (int i = 0; i < wp.orcCount; i++)
-        {
-            SpawnScaledOrc(wp);
-            yield return new WaitForSeconds(wp.orcSpawnInterval);
-        }
-    }
-
     private IEnumerator SpawnBosses(int waveIndex, WaveScalingConfig.WaveParams wp)
     {
-        yield return new WaitForSeconds(wp.bossSpawnDelay);
-
-        // Spawn Boss 1
+        // Spawn Boss 1 immediately (director already waited for the right moment)
         float xPos = UnityEngine.Random.Range(bridgeMinX + 0.5f, bridgeMaxX - 0.5f);
         Enemy boss1 = SpawnBoss(waveIndex, wp, xPos);
 
@@ -181,7 +210,6 @@ public class WaveSpawner : MonoBehaviour
         {
             if (boss1 == null || boss1.IsDead)
             {
-                // Boss 1 died before hitting 25% — spawn Boss 2 immediately
                 boss2Spawned = true;
             }
             else if (boss1.CurrentHealth <= boss1.MaxHealth * 0.25f)
@@ -211,7 +239,15 @@ public class WaveSpawner : MonoBehaviour
         {
             var baseData = enemy.Data;
             if (baseData != null)
-                enemy.InitializeScaled(baseData, wp.orcHP, wp.orcSpeed);
+            {
+                // Randomize speed +/-20% so orcs spread out naturally like an ocean wave
+                float speedVariance = wp.orcSpeed * UnityEngine.Random.Range(-0.2f, 0.2f);
+                enemy.InitializeScaled(baseData, wp.orcHP, wp.orcSpeed + speedVariance);
+            }
+
+            // Register with spawn director for tracking
+            if (spawnDirector != null)
+                spawnDirector.TrackEnemy(enemy);
         }
     }
 
@@ -224,6 +260,12 @@ public class WaveSpawner : MonoBehaviour
 
         Vector3 pos = new Vector3(xPos, y, spawnZ);
         GameObject go = Instantiate(bossPrefabs[waveIndex], pos, Quaternion.identity);
+
+        // Set boss and all children to Enemy layer so projectiles can hit them
+        int enemyLayer = LayerMask.NameToLayer("Enemy");
+        go.layer = enemyLayer;
+        foreach (Transform child in go.GetComponentsInChildren<Transform>())
+            child.gameObject.layer = enemyLayer;
 
         Enemy enemy = go.GetComponent<Enemy>();
         if (enemy != null)
@@ -261,6 +303,11 @@ public class WaveSpawner : MonoBehaviour
 
     private void HandleEnemyDied(Enemy enemy)
     {
-        _enemiesAlive = Mathf.Max(0, _enemiesAlive - 1);
+        // Only decrement boss count for bosses (orcs are tracked by SpawnDirector)
+        if (enemy != null && enemy.GetComponent<BossBehavior>() != null)
+        {
+            _bossesAlive = Mathf.Max(0, _bossesAlive - 1);
+            Debug.Log($"[WaveSpawner] Boss died! _bossesAlive={_bossesAlive}, enemy='{enemy.gameObject.name}'");
+        }
     }
 }

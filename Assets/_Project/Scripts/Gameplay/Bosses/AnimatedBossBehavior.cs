@@ -111,6 +111,19 @@ public abstract class AnimatedBossBehavior : BossBehavior
             case BossPhase.TargetedWalk:
                 UpdateTargetedWalk();
                 break;
+            case BossPhase.DeathStrike:
+                // Boss keeps walking forward (off bridge) after killing the player
+                _forcedPosition.z -= enemy.MoveSpeed * Time.deltaTime;
+                transform.rotation = Quaternion.LookRotation(Vector3.back);
+                // Destroy boss once it walks well past the player and off-screen
+                if (_forcedPosition.z < -15f)
+                {
+                    Debug.Log("[AnimatedBoss] Boss walked off bridge — destroying");
+                    if (!enemy.IsDead)
+                        enemy.TakeDamage(99999); // triggers Die() → OnEnemyDied → decrements _enemiesAlive
+                    enemy.ForceDestroy();
+                }
+                break;
         }
     }
 
@@ -300,12 +313,15 @@ public abstract class AnimatedBossBehavior : BossBehavior
 
         OnDeathStrikeImpact();
 
-        // Freeze boss in strike pose
+        // Boss walks off in victory — resume walking animation
         if (animator != null)
-            animator.speed = 0f;
+        {
+            animator.speed = 1f;
+            SetAnimWalking(true);
+            Debug.Log("[AnimatedBoss] Boss resuming walk (victory stride off bridge)");
+        }
 
-        // Serial flow: player death animation plays → waits → calls EndGame
-        // Everything is handled inside the player's coroutine
+        // Start the player death cinematic (non-blocking so boss keeps moving)
         if (mainPlayer != null)
         {
             Debug.Log("[AnimatedBoss] Starting player death cinematic (serial)");

@@ -74,8 +74,8 @@ public class GameManager : MonoBehaviour
     {
         if (State == GameState.GameOver || State == GameState.Victory) return;
         Debug.Log($"[GameManager] EndGame called!\n{System.Environment.StackTrace}");
-        Time.timeScale = 0f; // Freeze game while death screen is showing
-        AudioListener.pause = true;
+        // Time.timeScale and AudioListener.pause are now handled in ShooterHealth.PlayDeathCinematicRoutine
+        // to allow the death animation to play before freezing the game
         State = GameState.GameOver;
         OnGameOver?.Invoke();
     }
@@ -109,6 +109,7 @@ public class GameManager : MonoBehaviour
         PowerupManager.ResetEvents();
         ReviveManager.ResetEvents();
         AnimatedBossBehavior.ResetEvents();
+        SpawnDirector.ResetEvents();
         Instance = null;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }

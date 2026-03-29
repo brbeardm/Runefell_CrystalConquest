@@ -55,6 +55,7 @@ public class ReviveManager : MonoBehaviour
 
         if (ShooterManager.Instance != null)
         {
+            ShooterManager.Instance.SuppressGameOver = false;
             ShooterManager.Instance.RespawnPlayer();
 
             // Grant extended invincibility so the player can recover

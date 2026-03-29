@@ -47,6 +47,17 @@ public class CrystalBuffManager : MonoBehaviour
     private void HandleGameOver()
     {
         StopAllCoroutines();
+
+        // Clear buff stats from player if buff was active
+        if (IsBuffActive)
+        {
+            var player = FindAnyObjectByType<PlayerShooter>();
+            if (player != null)
+                player.ClearBuffStats();
+
+            OnBuffExpired?.Invoke();
+        }
+
         IsBuffActive = false;
         BuffTimeRemaining = 0f;
     }

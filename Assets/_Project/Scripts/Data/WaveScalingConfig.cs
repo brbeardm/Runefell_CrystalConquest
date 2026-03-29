@@ -15,18 +15,41 @@ public class WaveScalingConfig : ScriptableObject
     {
         public string waveName = "Orc Horde";
 
-        [Header("Orc Flood")]
-        [Tooltip("Number of orcs in this wave.")]
-        public int orcCount = 10;
-
+        [Header("Orc Stats")]
         [Tooltip("Orc HP for this wave.")]
         public int orcHP = 30;
 
         [Tooltip("Orc move speed (units/sec).")]
         public float orcSpeed = 2f;
 
-        [Tooltip("Seconds between orc spawns.")]
-        public float orcSpawnInterval = 0.6f;
+        [Header("Adaptive Spawn Budget")]
+        [Tooltip("Total orcs this wave can spawn. Wave ends when budget is spent and all are dead.")]
+        public int orcBudget = 30;
+
+        [Tooltip("Fraction of budget that must be spent before boss can trigger (0-1).")]
+        [Range(0f, 1f)]
+        public float bossUnlockThreshold = 0.6f;
+
+        [Header("Tension Curve")]
+        [Tooltip("Number of Build-Surge-Relief oscillations before boss entrance.")]
+        public int tensionCycles = 2;
+
+        [Tooltip("Target pressure during Build phase (ramps from x to y).")]
+        public Vector2 buildPressure = new Vector2(30f, 65f);
+
+        [Tooltip("Target pressure during Surge phase.")]
+        public Vector2 surgePressure = new Vector2(80f, 85f);
+
+        [Tooltip("Target pressure during Relief phase.")]
+        public Vector2 reliefPressure = new Vector2(30f, 40f);
+
+        [Tooltip("Pressure must drop below this for boss entrance after cycles complete.")]
+        public float bossEntrancePressure = 25f;
+
+        [Header("Phase Durations (seconds)")]
+        public float buildDuration = 8f;
+        public float surgeDuration = 6f;
+        public float reliefDuration = 5f;
 
         [Header("Boss")]
         [Tooltip("Boss HP for this wave.")]
@@ -34,9 +57,6 @@ public class WaveScalingConfig : ScriptableObject
 
         [Tooltip("Boss move speed (units/sec). Bosses are slower than orcs.")]
         public float bossSpeed = 1f;
-
-        [Tooltip("Seconds into the wave before bosses spawn.")]
-        public float bossSpawnDelay = 5f;
 
         [Header("HeroCrystal")]
         [Tooltip("Hits required to break the crystal this wave.")]
@@ -47,12 +67,14 @@ public class WaveScalingConfig : ScriptableObject
 
         [Header("Pacing")]
         [Tooltip("Breather seconds before this wave starts.")]
-        public float breatherSeconds = 8f;
+        public float breatherSeconds = 3f;
+
+        // Legacy fields kept hidden so existing .asset files don't lose data
+        [HideInInspector] public int orcCount;
+        [HideInInspector] public float orcSpawnInterval;
+        [HideInInspector] public float bossSpawnDelay;
     }
 
-    /// <summary>
-    /// Returns wave params clamped to valid index.
-    /// </summary>
     public WaveParams GetWave(int index)
     {
         if (waves == null || waves.Length == 0) return new WaveParams();

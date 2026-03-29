@@ -113,18 +113,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7cf7f9445c8b24245906aaa2f2b6bf8b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OrcBossBehavior
-  intimidationTravelDistance: 20
+  intimidationTravelDistance: 30
   intimidationPauseTime: 0.5
   intimidationAttackTime: 1.5
   roarPauseTime: 0.5
-  roarDuration: 1.5
-  intimidationKillRadius: 4
+  roarDuration: 2
+  intimidationKillRadius: 2
   deathStrikeRange: 3
   deathStrikeTime: 3
   deathStrikePause: 1.5
   dyingDuration: 3
   groundSmashRadius: 3
   smashFlashColor: {r: 1, g: 0.5, b: 0, a: 0.6}
+  shockwaveDuration: 0.8
+  scatterRadius: 8
+  scatterForce: 15
+  scatterUpForce: 6
+  intimidationShakeIntensity: 0.6
+  intimidationShakeDuration: 0.8
+  deathStrikeShakeIntensity: 0.7
+  deathStrikeShakeDuration: 0.6
+  roarShakeIntensity: 0.3
+  roarShakeDuration: 0.4
 --- !u!136 &8223173200773016482
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -140,7 +150,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
