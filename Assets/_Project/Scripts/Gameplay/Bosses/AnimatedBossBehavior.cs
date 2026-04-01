@@ -98,9 +98,20 @@ public abstract class AnimatedBossBehavior : BossBehavior
         SetPhase(BossPhase.Walking);
     }
 
+    private float _lastDebugTime;
+
     private void Update()
     {
-        if (enemy == null || enemy.IsDead) return;
+        if (enemy == null) return;
+        if (enemy.IsDead)
+        {
+            if (Time.time - _lastDebugTime > 2f)
+            {
+                Debug.Log($"[AnimatedBoss] Update skipped — IsDead=true, phase={CurrentPhase}, HP={enemy.CurrentHealth}/{enemy.MaxHealth}");
+                _lastDebugTime = Time.time;
+            }
+            return;
+        }
         if (CrystalNecromancerBossBehavior.IsResurrecting) return;
 
         switch (CurrentPhase)
