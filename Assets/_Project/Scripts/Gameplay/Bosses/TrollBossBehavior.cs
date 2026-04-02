@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Wave 2 — Troll Boss. Animated theatrical phases + knockback on clone contact.
 /// Walk 5Z → Intimidation attack (kills nearby orcs + knockback shockwave) → Roar → Targeted walk → Death strike.
-/// Uses: Troll-Walking.fbx, Troll-Attack.fbx, Troll-Death.fbx
+/// At 50% HP: Taunt → heals to full, deals 25 damage to player (floor 10 HP, no kill).
 /// </summary>
 public class TrollBossBehavior : AnimatedBossBehavior
 {
@@ -12,11 +12,51 @@ public class TrollBossBehavior : AnimatedBossBehavior
     [SerializeField] private float knockbackRadius = 5f;
     [SerializeField] private Color stompColor = new Color(0.4f, 0.7f, 0.2f, 0.6f);
 
+    [Header("Troll Taunt")]
+    [SerializeField] private int tauntTrollHealthBoost = 500;
+    [SerializeField] private int tauntPlayerDamage = 25;
+    [SerializeField] private int tauntPlayerMinHP = 10;
+
+    private bool _hasTaunted;
+
     public override void OnSpawn()
     {
         intimidationTravelDistance = 5f;
         intimidationKillRadius = 5f;
         deathStrikeRange = 2.5f;
+    }
+
+    protected override bool CheckTauntCondition()
+    {
+        if (_hasTaunted || enemy == null || enemy.IsDead) return false;
+
+        if (enemy.CurrentHealth <= enemy.MaxHealth / 2)
+        {
+            _hasTaunted = true;
+            Debug.Log($"[TrollBoss] Half-health reached ({enemy.CurrentHealth}/{enemy.MaxHealth}) — TAUNT!");
+            return true;
+        }
+        return false;
+    }
+
+    protected override void OnTauntStart()
+    {
+        // Heal boss by configured amount (capped at max)
+        int newHP = Mathf.Min(enemy.CurrentHealth + tauntTrollHealthBoost, enemy.MaxHealth);
+        enemy.SetHealth(newHP);
+        Debug.Log($"[TrollBoss] Taunt healed +{tauntTrollHealthBoost}: {enemy.CurrentHealth}/{enemy.MaxHealth}");
+
+        // Damage player (floor at minHP, never kill)
+        if (ShooterManager.Instance != null && ShooterManager.Instance.PlayerObject != null)
+        {
+            var playerHealth = ShooterManager.Instance.PlayerObject.GetComponent<ShooterHealth>();
+            if (playerHealth != null)
+            {
+                playerHealth.TakeTauntDamage(tauntPlayerDamage, tauntPlayerMinHP);
+                Debug.Log($"[TrollBoss] Taunt dealt {tauntPlayerDamage} damage to player (min HP: {tauntPlayerMinHP})");
+            }
+        }
+
     }
 
     protected override void OnIntimidationImpact()

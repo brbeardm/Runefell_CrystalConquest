@@ -20,5 +20,6 @@ MonoBehaviour:
   isInstantKill: 1
   healthRegenRate: 0
   scaleMultiplier: 2
+  spawnYOffset: 0
   scoreValue: 100
   powerUpDropChance: 0.05

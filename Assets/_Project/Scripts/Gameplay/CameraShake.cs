@@ -24,34 +24,35 @@ public class CameraShake : MonoBehaviour
     }
 
     /// <summary>
-    /// Trigger a camera shake.
+    /// Trigger a camera shake with intensity decay.
     /// </summary>
     /// <param name="intensity">Max displacement in units.</param>
     /// <param name="duration">How long the shake lasts.</param>
-    public static void Shake(float intensity = 0.3f, float duration = 0.4f)
+    /// <param name="sustained">If true, shake stays at full intensity (no decay).</param>
+    public static void Shake(float intensity = 0.3f, float duration = 0.4f, bool sustained = false)
     {
         if (Instance != null)
-            Instance.DoShake(intensity, duration);
+            Instance.DoShake(intensity, duration, sustained);
     }
 
-    private void DoShake(float intensity, float duration)
+    private void DoShake(float intensity, float duration, bool sustained)
     {
         if (_shakeRoutine != null)
             StopCoroutine(_shakeRoutine);
-        _shakeRoutine = StartCoroutine(ShakeRoutine(intensity, duration));
+        _shakeRoutine = StartCoroutine(ShakeRoutine(intensity, duration, sustained));
     }
 
-    private IEnumerator ShakeRoutine(float intensity, float duration)
+    private IEnumerator ShakeRoutine(float intensity, float duration, bool sustained)
     {
         float elapsed = 0f;
 
         while (elapsed < duration)
         {
             float t = elapsed / duration;
-            float decay = 1f - t; // Shake intensity decays over time
+            float strength = sustained ? 1f : (1f - t);
 
-            float offsetX = Random.Range(-1f, 1f) * intensity * decay;
-            float offsetY = Random.Range(-1f, 1f) * intensity * decay;
+            float offsetX = Random.Range(-1f, 1f) * intensity * strength;
+            float offsetY = Random.Range(-1f, 1f) * intensity * strength;
 
             transform.localPosition = _originalLocalPos + new Vector3(offsetX, offsetY, 0f);
 

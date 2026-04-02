@@ -15,10 +15,11 @@ MonoBehaviour:
   displayName: Troll Boss
   isBoss: 1
   maxHealth: 1000
-  moveSpeed: 1
+  moveSpeed: 6
   contactDamage: 999
   isInstantKill: 1
   healthRegenRate: 0
   scaleMultiplier: 2.1
+  spawnYOffset: 0
   scoreValue: 150
   powerUpDropChance: 0.05

@@ -257,7 +257,11 @@ public class WaveSpawner : MonoBehaviour
 
         float spawnZ = spawnPoint != null ? spawnPoint.position.z : fallbackSpawnZ;
         float y = spawnPoint != null ? spawnPoint.position.y : spawnY;
-        y += 2.2f; // raise boss above bridge surface
+
+        // Per-boss Y offset from EnemyData (replaces old hardcoded 2.2f)
+        var prefabEnemy = bossPrefabs[waveIndex].GetComponent<Enemy>();
+        if (prefabEnemy != null && prefabEnemy.Data != null)
+            y += prefabEnemy.Data.spawnYOffset;
 
         Vector3 pos = new Vector3(xPos, y, spawnZ);
         GameObject go = Instantiate(bossPrefabs[waveIndex], pos, Quaternion.identity);

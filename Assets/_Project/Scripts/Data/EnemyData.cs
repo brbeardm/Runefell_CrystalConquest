@@ -7,11 +7,11 @@ public class EnemyData : ScriptableObject
     public string displayName = "Orc";
     public bool isBoss;
 
-    [Header("Stats")]
-    [Tooltip("Total hit points.")]
+    [Header("Stats (Bosses: overridden by DefaultCampaign bossHP/bossSpeed)")]
+    [Tooltip("Total hit points. BOSSES: this value is ignored — set bossHP in DefaultCampaign wave config instead.")]
     public int maxHealth = 30;
 
-    [Tooltip("Walk speed toward the player (units/sec).")]
+    [Tooltip("Walk speed (units/sec). BOSSES: this value is ignored — set bossSpeed in DefaultCampaign wave config instead.")]
     public float moveSpeed = 2f;
 
     [Tooltip("Damage dealt to the player on contact.")]
@@ -26,6 +26,9 @@ public class EnemyData : ScriptableObject
     [Header("Visuals")]
     [Tooltip("Uniform scale multiplier. Bosses are larger (5x).")]
     public float scaleMultiplier = 1f;
+
+    [Tooltip("Y offset added to spawn position. Adjust per boss so feet touch the bridge.")]
+    public float spawnYOffset = 0f;
 
     [Header("Rewards")]
     [Tooltip("Score awarded when killed.")]

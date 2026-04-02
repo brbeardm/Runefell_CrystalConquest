@@ -23,6 +23,7 @@ public class AudioManager : MonoBehaviour
     [Header("Boss Animated")]
     [SerializeField] private AudioClip bossRoarSfx;
     [SerializeField] private AudioClip bossIntimidationSfx;
+    [SerializeField] private AudioClip bossTauntSfx;
 
     [Header("Revive")]
     [SerializeField] private AudioClip reviveBlastSfx;
@@ -72,6 +73,8 @@ public class AudioManager : MonoBehaviour
         ReviveManager.OnReviveStarted += HandleReviveBlast;
         AnimatedBossBehavior.OnBossRoar += HandleBossRoar;
         AnimatedBossBehavior.OnBossIntimidationKill += HandleBossIntimidation;
+        AnimatedBossBehavior.OnBossTaunt += HandleBossTaunt;
+        AnimatedBossBehavior.OnBossTauntEnd += HandleBossTauntEnd;
         ShooterHealth.OnPlayerHPChanged += HandlePlayerHPChanged;
         Enemy.OnEnemyDied += HandleEnemyDied;
     }
@@ -89,6 +92,8 @@ public class AudioManager : MonoBehaviour
         ReviveManager.OnReviveStarted -= HandleReviveBlast;
         AnimatedBossBehavior.OnBossRoar -= HandleBossRoar;
         AnimatedBossBehavior.OnBossIntimidationKill -= HandleBossIntimidation;
+        AnimatedBossBehavior.OnBossTaunt -= HandleBossTaunt;
+        AnimatedBossBehavior.OnBossTauntEnd -= HandleBossTauntEnd;
         ShooterHealth.OnPlayerHPChanged -= HandlePlayerHPChanged;
         Enemy.OnEnemyDied -= HandleEnemyDied;
     }
@@ -119,6 +124,37 @@ public class AudioManager : MonoBehaviour
 
     private void HandleBossRoar() => PlayClip(bossRoarSfx);
     private void HandleBossIntimidation() => PlayClip(bossIntimidationSfx);
+    private float _preTauntVolume;
+
+    private void HandleBossTaunt()
+    {
+        // Duck all other game audio so the taunt stands out
+        _preTauntVolume = AudioListener.volume;
+        AudioListener.volume = 0.05f;
+
+        // Play taunt SFX on the dedicated source so it ignores the duck
+        if (bossTauntSfx != null && _reviveSource != null)
+            _reviveSource.PlayOneShot(bossTauntSfx);
+    }
+
+    private void HandleBossTauntEnd()
+    {
+        // Fade audio back in over 0.3s
+        StartCoroutine(FadeVolumeBack(_preTauntVolume, 0.3f));
+    }
+
+    private System.Collections.IEnumerator FadeVolumeBack(float targetVolume, float fadeTime)
+    {
+        float startVolume = AudioListener.volume;
+        float elapsed = 0f;
+        while (elapsed < fadeTime)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            AudioListener.volume = Mathf.Lerp(startVolume, targetVolume, elapsed / fadeTime);
+            yield return null;
+        }
+        AudioListener.volume = targetVolume;
+    }
 
     private void HandleReviveBlast()
     {

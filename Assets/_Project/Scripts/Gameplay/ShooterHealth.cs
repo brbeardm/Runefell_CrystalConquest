@@ -92,6 +92,11 @@ public class ShooterHealth : MonoBehaviour
         _currentHP = maxHP;
         OnPlayerHPChanged?.Invoke(_currentHP, maxHP);
 
+        // Re-enable movement (disabled by boss death strike)
+        var mover = GetComponent<PlayerMover>();
+        if (mover != null)
+            mover.enabled = true;
+
         // Re-enable shooting
         var shooter = GetComponent<PlayerShooter>();
         if (shooter != null)
@@ -138,6 +143,17 @@ public class ShooterHealth : MonoBehaviour
         var animDriver = GetComponent<PlayerAnimationDriver>();
         if (animDriver != null)
             animDriver.enabled = true;
+    }
+
+    /// <summary>
+    /// Boss taunt damage — reduces HP but never below minHP and never kills.
+    /// </summary>
+    public void TakeTauntDamage(int amount, int minHP)
+    {
+        if (_isDead) return;
+
+        _currentHP = Mathf.Max(_currentHP - amount, minHP);
+        OnPlayerHPChanged?.Invoke(_currentHP, maxHP);
     }
 
     /// <summary>

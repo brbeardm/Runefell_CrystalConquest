@@ -28,7 +28,7 @@ using System.Collections;
 /// </summary>
 public abstract class AnimatedBossBehavior : BossBehavior
 {
-    public enum BossPhase { Walking, IntimidationPause, IntimidationAttack, Roar, TargetedWalk, DeathStrike, Dying, Dead }
+    public enum BossPhase { Walking, IntimidationPause, IntimidationAttack, Roar, TargetedWalk, Taunting, DeathStrike, Dying, Dead }
 
     [Header("Animated Boss — Phases")]
     [Tooltip("Z distance to travel before intimidation attack")]
@@ -60,6 +60,18 @@ public abstract class AnimatedBossBehavior : BossBehavior
     [Tooltip("Dramatic pause after the kill before showing game over screen")]
     [SerializeField] protected float deathStrikePause = 1.5f;
 
+    [Tooltip("Ideal distance from player for the weapon to connect during death strike")]
+    [SerializeField] protected float deathStrikeImpactDistance = 1.5f;
+
+    [Tooltip("Time (seconds) for boss to slide into strike position during windup")]
+    [SerializeField] protected float deathStrikeSlideTime = 0.4f;
+
+    [Tooltip("Empty GameObject on the boss marking where the weapon hits. Boss slides so this point lands on the player.")]
+    [SerializeField] protected GameObject weaponImpactPoint;
+
+    [Tooltip("Offset from boss root to weapon impact point at the impact frame (measured in prefab with animation scrubbed to impact). Used for death strike positioning.")]
+    [SerializeField] protected Vector3 impactFrameOffset = new Vector3(2.78f, 0f, 2.29f);
+
     [Header("Animated Boss — Death")]
     [Tooltip("Time to play dying animation before destroying")]
     [SerializeField] protected float dyingDuration = 2f;
@@ -74,6 +86,8 @@ public abstract class AnimatedBossBehavior : BossBehavior
     // Events for audio/VFX hooks
     public static event Action OnBossRoar;
     public static event Action OnBossIntimidationKill;
+    public static event Action OnBossTaunt;
+    public static event Action OnBossTauntEnd;
 
     protected override void Awake()
     {
@@ -119,9 +133,28 @@ public abstract class AnimatedBossBehavior : BossBehavior
             case BossPhase.Walking:
                 UpdateWalking();
                 break;
+            
+            case BossPhase.IntimidationPause:
+            case BossPhase.IntimidationAttack:
+            case BossPhase.Roar:
+                // Continue moving forward during intimidation sequence
+                _forcedPosition.z -= enemy.MoveSpeed * Time.deltaTime;
+                transform.rotation = Quaternion.LookRotation(Vector3.back);
+                break;
+            
             case BossPhase.TargetedWalk:
+                if (CheckTauntCondition())
+                {
+                    SetPhase(BossPhase.Taunting);
+                    break;
+                }
                 UpdateTargetedWalk();
                 break;
+            
+            case BossPhase.Taunting:
+                // Boss stands still during taunt
+                break;
+            
             case BossPhase.DeathStrike:
                 // Boss keeps walking forward (off bridge) after killing the player
                 _forcedPosition.z -= enemy.MoveSpeed * Time.deltaTime;
@@ -161,7 +194,7 @@ public abstract class AnimatedBossBehavior : BossBehavior
                 break;
 
             case BossPhase.IntimidationPause:
-                SetAnimWalking(false);
+                // Keep walk animation playing until attack trigger fires — avoids Idle dip
                 StartCoroutine(RunIntimidationSequence());
                 break;
 
@@ -173,6 +206,11 @@ public abstract class AnimatedBossBehavior : BossBehavior
             case BossPhase.DeathStrike:
                 SetAnimWalking(false);
                 StartCoroutine(RunDeathStrike());
+                break;
+
+            case BossPhase.Taunting:
+                SetAnimWalking(false);
+                StartCoroutine(RunTaunt());
                 break;
 
             case BossPhase.Dying:
@@ -211,19 +249,32 @@ public abstract class AnimatedBossBehavior : BossBehavior
         }
 
         Vector3 targetPos = _playerTarget.position;
+
+        // As boss approaches death strike range, steer toward bridge center X
+        // so the attack animation has room to play without going off the edge
+        float distToPlayer = Vector3.Distance(
+            new Vector3(_forcedPosition.x, 0, _forcedPosition.z),
+            new Vector3(targetPos.x, 0, targetPos.z));
+
+        float steerRange = deathStrikeRange * 3f; // start steering at 3x death strike range
+        if (distToPlayer < steerRange)
+        {
+            float steerT = 1f - (distToPlayer / steerRange); // 0 at far, 1 at close
+            float bridgeCenterX = 0f;
+            targetPos.x = Mathf.Lerp(targetPos.x, bridgeCenterX, steerT);
+        }
+
         Vector3 dir = (targetPos - _forcedPosition).normalized;
         dir.y = 0f;
 
         _forcedPosition += dir * enemy.MoveSpeed * Time.deltaTime;
 
-        // Face the player
+        // Smoothly rotate toward the player (no snapping)
         if (dir.sqrMagnitude > 0.001f)
-            transform.rotation = Quaternion.LookRotation(dir);
-
-        // Check death strike range
-        float distToPlayer = Vector3.Distance(
-            new Vector3(_forcedPosition.x, 0, _forcedPosition.z),
-            new Vector3(targetPos.x, 0, targetPos.z));
+        {
+            Quaternion targetRot = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 5f * Time.deltaTime);
+        }
 
         if (distToPlayer <= deathStrikeRange)
         {
@@ -262,7 +313,10 @@ public abstract class AnimatedBossBehavior : BossBehavior
         OnRoar();
         yield return new WaitForSeconds(roarDuration);
 
-        // Resume walking — now targeting the player
+        // Resume walking — smooth crossfade from attack/roar into walk
+        if (animator != null)
+            animator.ResetTrigger("Attack");
+
         SetPhase(BossPhase.TargetedWalk);
     }
 
@@ -281,15 +335,25 @@ public abstract class AnimatedBossBehavior : BossBehavior
         if (animator != null)
             animator.updateMode = AnimatorUpdateMode.UnscaledTime;
 
-        // Make player invincible during the death strike windup so orcs don't kill them early
+        // Freeze the player — disable movement and shooting so they can't escape
+        PlayerMover playerMover = null;
+        PlayerShooter playerShooter = null;
+        PlayerAnimationDriver playerAnimDriver = null;
         if (_playerTarget != null)
         {
+            playerMover = _playerTarget.GetComponent<PlayerMover>();
+            playerShooter = _playerTarget.GetComponent<PlayerShooter>();
+            playerAnimDriver = _playerTarget.GetComponent<PlayerAnimationDriver>();
+
+            if (playerMover != null) playerMover.enabled = false;
+            if (playerShooter != null) playerShooter.enabled = false;
+
             var playerHealth = _playerTarget.GetComponent<ShooterHealth>();
             if (playerHealth != null)
                 playerHealth.GrantInvincibility(deathStrikeTime + 5f);
-        }
 
-        TriggerAttackAnim();
+            Debug.Log("[AnimatedBoss] Player frozen for death strike");
+        }
 
         // Face the player for the killing blow
         if (_playerTarget != null)
@@ -300,10 +364,49 @@ public abstract class AnimatedBossBehavior : BossBehavior
                 transform.rotation = Quaternion.LookRotation(dir);
         }
 
+        // Slide boss so the weapon impact point at the impact frame lands on the player
+        // impactFrameOffset was measured in the prefab with animation scrubbed to the impact frame
+        Vector3 slideStart = _forcedPosition;
+        Vector3 slideTarget = _forcedPosition;
+        if (_playerTarget != null)
+        {
+            // Rotate the measured offset by the boss's current facing direction
+            Vector3 worldOffset = transform.rotation * impactFrameOffset;
+            worldOffset.y = 0f;
+
+            // Boss needs to stand here so the hammer lands on the player
+            slideTarget = _playerTarget.position - worldOffset;
+            slideTarget.y = _forcedPosition.y;
+
+            // Safety clamp — boss should already be centered from TargetedWalk steering
+            slideTarget.x = Mathf.Clamp(slideTarget.x, -1f, 1f);
+        }
+
+        TriggerAttackAnim();
         OnDeathStrikeStart();
 
-        // Wait for attack animation to reach impact frame (all realtime)
-        yield return new WaitForSecondsRealtime(deathStrikeTime * 0.6f);
+        // Slide boss into position over the windup portion of the attack
+        // Slide boss into position — arrive by the impact frame (58% of clip = ~1.41s)
+        float impactTime = deathStrikeTime * 0.58f;
+        float slideElapsed = 0f;
+        while (slideElapsed < impactTime)
+        {
+            slideElapsed += Time.unscaledDeltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, slideElapsed / impactTime);
+            _forcedPosition = Vector3.Lerp(slideStart, slideTarget, t);
+
+            // Keep facing the player during slide
+            if (_playerTarget != null)
+            {
+                Vector3 dir = (_playerTarget.position - _forcedPosition).normalized;
+                dir.y = 0f;
+                if (dir.sqrMagnitude > 0.001f)
+                    transform.rotation = Quaternion.LookRotation(dir);
+            }
+
+            yield return null;
+        }
+        _forcedPosition = slideTarget;
 
         // Kill clones instantly, find the main player
         ShooterHealth mainPlayer = null;
@@ -344,6 +447,36 @@ public abstract class AnimatedBossBehavior : BossBehavior
             if (GameManager.Instance != null)
                 GameManager.Instance.EndGame();
         }
+    }
+
+    // ── Taunt ────────────────────────────────────────────────────────────
+
+    [Header("Animated Boss — Taunt")]
+    [Tooltip("Duration of the taunt animation")]
+    [SerializeField] protected float tauntDuration = 2.5f;
+
+    private IEnumerator RunTaunt()
+    {
+        // Wait one frame so the Walk→Idle transition settles before firing the trigger
+        yield return null;
+
+        TriggerTauntAnim();
+        OnBossTaunt?.Invoke();
+        OnTauntStart();
+
+        // Sustained camera shake for the full taunt duration (no decay)
+        CameraShake.Shake(0.3f, tauntDuration, sustained: true);
+
+        yield return new WaitForSeconds(tauntDuration);
+
+        OnTauntEnd();
+        OnBossTauntEnd?.Invoke();
+
+        // Resume walking — smooth crossfade from taunt into walk
+        if (animator != null)
+            animator.ResetTrigger("Taunt");
+
+        SetPhase(BossPhase.TargetedWalk);
     }
 
     // ── Dying ────────────────────────────────────────────────────────────
@@ -402,7 +535,7 @@ public abstract class AnimatedBossBehavior : BossBehavior
         {
             animator.SetBool("IsWalking", walking);
             if (walking)
-                animator.SetTrigger("Walk");
+                animator.CrossFade("Walk", 0.2f, 0);
         }
     }
 
@@ -410,6 +543,28 @@ public abstract class AnimatedBossBehavior : BossBehavior
     {
         if (animator != null)
             animator.SetTrigger("Attack");
+    }
+
+    protected void TriggerTauntAnim()
+    {
+        if (animator != null)
+        {
+            Debug.Log($"[AnimatedBoss] TriggerTauntAnim — animator enabled={animator.enabled}, current state={animator.GetCurrentAnimatorStateInfo(0).shortNameHash}, IsInTransition={animator.IsInTransition(0)}");
+            animator.SetTrigger("Taunt");
+
+            // Verify parameter exists
+            foreach (var param in animator.parameters)
+            {
+                if (param.name == "Taunt")
+                {
+                    Debug.Log($"[AnimatedBoss] 'Taunt' parameter found, type={param.type}");
+                }
+            }
+        }
+        else
+        {
+            Debug.LogError("[AnimatedBoss] TriggerTauntAnim — animator is NULL!");
+        }
     }
 
     protected void TriggerDieAnim()
@@ -440,6 +595,15 @@ public abstract class AnimatedBossBehavior : BossBehavior
     /// <summary>Called at the moment the death strike kills the player. Override for impact VFX.</summary>
     protected virtual void OnDeathStrikeImpact() { }
 
+    /// <summary>Called each frame during TargetedWalk. Return true to trigger taunt phase. Default: no taunt.</summary>
+    protected virtual bool CheckTauntCondition() => false;
+
+    /// <summary>Called when the taunt animation starts. Override for boss-specific taunt effects (heal, debuff, etc).</summary>
+    protected virtual void OnTauntStart() { }
+
+    /// <summary>Called when the taunt animation ends. Override for post-taunt effects.</summary>
+    protected virtual void OnTauntEnd() { }
+
     /// <summary>Called when the dying animation starts. Override for boss-specific death VFX.</summary>
     protected virtual void OnDeathStart() { }
 
@@ -447,5 +611,7 @@ public abstract class AnimatedBossBehavior : BossBehavior
     {
         OnBossRoar = null;
         OnBossIntimidationKill = null;
+        OnBossTaunt = null;
+        OnBossTauntEnd = null;
     }
 }

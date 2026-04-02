@@ -39,7 +39,10 @@
       "Bash(grep -A 5 \"clipAnimations:\" Assets/Characters/Troll*.fbx.meta)",
       "Bash(find /c/Users/bbear/runefell_crystalconquest/Assets/Characters -name *.meta -type f)",
       "Bash(mv \"Assets/Characters/Troll_ New_Attack2.fbx\" \"Assets/Characters/Troll_New_Attack2.fbx\")",
-      "Bash(mv \"Assets/Characters/Troll_ New_Attack2.fbx.meta\" \"Assets/Characters/Troll_New_Attack2.fbx.meta\")"
+      "Bash(mv \"Assets/Characters/Troll_ New_Attack2.fbx.meta\" \"Assets/Characters/Troll_New_Attack2.fbx.meta\")",
+      "Bash(grep -r \"avatar\" /c/Users/bbear/runefell_crystalconquest/Assets/Characters/Troll_Meshy/*.meta)",
+      "Bash(grep:*)",
+      "Bash(ls -lh /c/Users/bbear/runefell_crystalconquest/Assets/Characters/*.fbx)"
     ]
   }
 }
