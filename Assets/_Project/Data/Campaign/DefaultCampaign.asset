@@ -60,12 +60,12 @@ MonoBehaviour:
     orcHP: 40
     orcSpeed: 2
     orcBudget: 1600
-    bossUnlockThreshold: 0.6
-    tensionCycles: 2
+    bossUnlockThreshold: 0
+    tensionCycles: 0
     buildPressure: {x: 35, y: 68}
     surgePressure: {x: 80, y: 88}
     reliefPressure: {x: 25, y: 35}
-    bossEntrancePressure: 25
+    bossEntrancePressure: 100
     buildDuration: 7
     surgeDuration: 6
     reliefDuration: 4

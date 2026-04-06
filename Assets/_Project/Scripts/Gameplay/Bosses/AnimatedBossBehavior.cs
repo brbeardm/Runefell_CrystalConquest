@@ -72,6 +72,9 @@ public abstract class AnimatedBossBehavior : BossBehavior
     [Tooltip("Offset from boss root to weapon impact point at the impact frame (measured in prefab with animation scrubbed to impact). Used for death strike positioning.")]
     [SerializeField] protected Vector3 impactFrameOffset = new Vector3(2.78f, 0f, 2.29f);
 
+    [Tooltip("Normalized time (0-1) in the attack animation when the weapon makes contact. Used to time the death strike slide.")]
+    [SerializeField] protected float impactNormalizedTime = 0.58f;
+
     [Header("Animated Boss — Death")]
     [Tooltip("Time to play dying animation before destroying")]
     [SerializeField] protected float dyingDuration = 2f;
@@ -385,9 +388,8 @@ public abstract class AnimatedBossBehavior : BossBehavior
         TriggerAttackAnim();
         OnDeathStrikeStart();
 
-        // Slide boss into position over the windup portion of the attack
-        // Slide boss into position — arrive by the impact frame (58% of clip = ~1.41s)
-        float impactTime = deathStrikeTime * 0.58f;
+        // Slide boss into position — arrive by the impact frame
+        float impactTime = deathStrikeTime * impactNormalizedTime;
         float slideElapsed = 0f;
         while (slideElapsed < impactTime)
         {
