@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: DefaultHeroCrystal
   m_EditorClassIdentifier: Assembly-CSharp::HeroCrystalData
   hitsToFree: 20
-  hitsPerPiece: 2
-  fireRateMultiplier: 2
-  damageMultiplier: 2
-  respawnDelay: 10
+  hitsPerPiece: 1
+  fireRateMultiplier: 2.5
+  damageMultiplier: 2.5
+  respawnDelay: 8

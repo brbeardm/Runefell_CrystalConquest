@@ -853,7 +853,7 @@ MonoBehaviour:
   deathStrikeImpactDistance: 1.5
   deathStrikeSlideTime: 0.4
   weaponImpactPoint: {fileID: 7094948880556944028}
-  impactFrameOffset: {x: -1.5, y: 0, z: 2.7}
+  impactPositionTuning: {x: 0, y: 0, z: 0}
   dyingDuration: 2
   tauntDuration: 2.5
   knockbackForce: 5

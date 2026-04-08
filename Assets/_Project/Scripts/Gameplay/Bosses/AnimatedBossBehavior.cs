@@ -66,11 +66,11 @@ public abstract class AnimatedBossBehavior : BossBehavior
     [Tooltip("Time (seconds) for boss to slide into strike position during windup")]
     [SerializeField] protected float deathStrikeSlideTime = 0.4f;
 
-    [Tooltip("Empty GameObject on the boss marking where the weapon hits. Boss slides so this point lands on the player.")]
+    [Tooltip("Child GameObject on the weapon marking where it hits (e.g. mace tip). Currently used for reference only.")]
     [SerializeField] protected GameObject weaponImpactPoint;
 
-    [Tooltip("Offset from boss root to weapon impact point at the impact frame (measured in prefab with animation scrubbed to impact). Used for death strike positioning.")]
-    [SerializeField] protected Vector3 impactFrameOffset = new Vector3(2.78f, 0f, 2.29f);
+    [Tooltip("Position tuning for the death strike. Applied in the boss's local space at impact. X = left/right shift, Z = forward(+)/backward(-) shift relative to deathStrikeImpactDistance.")]
+    [SerializeField] protected Vector3 impactPositionTuning = Vector3.zero;
 
     [Tooltip("Normalized time (0-1) in the attack animation when the weapon makes contact. Used to time the death strike slide.")]
     [SerializeField] protected float impactNormalizedTime = 0.58f;
@@ -358,37 +358,30 @@ public abstract class AnimatedBossBehavior : BossBehavior
             Debug.Log("[AnimatedBoss] Player frozen for death strike");
         }
 
-        // Face the player for the killing blow
-        if (_playerTarget != null)
-        {
-            Vector3 dir = (_playerTarget.position - transform.position).normalized;
-            dir.y = 0f;
-            if (dir.sqrMagnitude > 0.001f)
-                transform.rotation = Quaternion.LookRotation(dir);
-        }
-
-        // Slide boss so the weapon impact point at the impact frame lands on the player
-        // impactFrameOffset was measured in the prefab with animation scrubbed to the impact frame
-        Vector3 slideStart = _forcedPosition;
-        Vector3 slideTarget = _forcedPosition;
-        if (_playerTarget != null)
-        {
-            // Rotate the measured offset by the boss's current facing direction
-            Vector3 worldOffset = transform.rotation * impactFrameOffset;
-            worldOffset.y = 0f;
-
-            // Boss needs to stand here so the hammer lands on the player
-            slideTarget = _playerTarget.position - worldOffset;
-            slideTarget.y = _forcedPosition.y;
-
-            // Safety clamp — boss should already be centered from TargetedWalk steering
-            slideTarget.x = Mathf.Clamp(slideTarget.x, -1f, 1f);
-        }
+        // Lock facing — boss is already oriented toward the player from TargetedWalk.
+        // No rotation changes after this point so the attack animation plays straight.
 
         TriggerAttackAnim();
         OnDeathStrikeStart();
 
-        // Slide boss into position — arrive by the impact frame
+        // Slide boss straight forward to deathStrikeImpactDistance from the player.
+        // Single smooth motion — no dynamic weapon tracking, no rotation changes.
+        Vector3 slideStart = _forcedPosition;
+        Vector3 slideTarget = slideStart;
+        if (_playerTarget != null)
+        {
+            Vector3 toPlayer = _playerTarget.position - _forcedPosition;
+            toPlayer.y = 0f;
+            Vector3 dirToPlayer = toPlayer.normalized;
+            slideTarget = _playerTarget.position - dirToPlayer * deathStrikeImpactDistance;
+            // Apply per-boss tuning in the boss's local space (X = left/right, Z = forward/back)
+            slideTarget += transform.rotation * impactPositionTuning;
+            slideTarget.y = slideStart.y;
+        }
+
+        Debug.Log($"[AnimatedBoss] DeathStrike slide: start={slideStart}, target={slideTarget}, " +
+                  $"playerPos={_playerTarget?.position}, impactDist={deathStrikeImpactDistance}, tuning={impactPositionTuning}");
+
         float impactTime = deathStrikeTime * impactNormalizedTime;
         float slideElapsed = 0f;
         while (slideElapsed < impactTime)
@@ -396,16 +389,6 @@ public abstract class AnimatedBossBehavior : BossBehavior
             slideElapsed += Time.unscaledDeltaTime;
             float t = Mathf.SmoothStep(0f, 1f, slideElapsed / impactTime);
             _forcedPosition = Vector3.Lerp(slideStart, slideTarget, t);
-
-            // Keep facing the player during slide
-            if (_playerTarget != null)
-            {
-                Vector3 dir = (_playerTarget.position - _forcedPosition).normalized;
-                dir.y = 0f;
-                if (dir.sqrMagnitude > 0.001f)
-                    transform.rotation = Quaternion.LookRotation(dir);
-            }
-
             yield return null;
         }
         _forcedPosition = slideTarget;

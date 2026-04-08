@@ -33,7 +33,6 @@ public class WraithBossBehavior : AnimatedBossBehavior
 
         // Impact at frame 26 of 69 = 37.7%
         impactNormalizedTime = 0.377f;
-        impactFrameOffset = new Vector3(2.05f, 0.56f, -2.72f);
     }
 
     protected override bool CheckTauntCondition()

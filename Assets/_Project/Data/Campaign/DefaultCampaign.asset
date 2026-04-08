@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaveScalingConfig
   totalWaves: 9
   waves:
-  - waveName: The Orc Horde
-    orcHP: 30
+  - waveName: Orc Horde
+    orcHP: 10
     orcSpeed: 1.6
     orcBudget: 1000
     bossUnlockThreshold: 0
@@ -36,7 +36,7 @@ MonoBehaviour:
     orcSpawnInterval: 0
     bossSpawnDelay: 0
   - waveName: Troll Assault
-    orcHP: 35
+    orcHP: 20
     orcSpeed: 1.8
     orcBudget: 1250
     bossUnlockThreshold: 0
@@ -57,7 +57,7 @@ MonoBehaviour:
     orcSpawnInterval: 0
     bossSpawnDelay: 0
   - waveName: Wraith Shadows
-    orcHP: 40
+    orcHP: 25
     orcSpeed: 2
     orcBudget: 1600
     bossUnlockThreshold: 0
@@ -69,52 +69,52 @@ MonoBehaviour:
     buildDuration: 7
     surgeDuration: 6
     reliefDuration: 4
-    bossHP: 3200
+    bossHP: 3000
     bossSpeed: 2
-    crystalHitsToBreak: 70
-    buffDuration: 26
+    crystalHitsToBreak: 60
+    buffDuration: 30
     breatherSeconds: 3
     orcCount: 0
     orcSpawnInterval: 0
     bossSpawnDelay: 0
-  - waveName: Sorcerer's Gambit
-    orcHP: 45
-    orcSpeed: 2.2
+  - waveName: Sorcerer's Rage
+    orcHP: 30
+    orcSpeed: 2
     orcBudget: 2000
-    bossUnlockThreshold: 0.6
-    tensionCycles: 2
+    bossUnlockThreshold: 0
+    tensionCycles: 0
     buildPressure: {x: 35, y: 70}
     surgePressure: {x: 80, y: 88}
     reliefPressure: {x: 28, y: 38}
-    bossEntrancePressure: 25
+    bossEntrancePressure: 100
     buildDuration: 7
     surgeDuration: 7
     reliefDuration: 4
-    bossHP: 4000
+    bossHP: 3200
     bossSpeed: 0.8
-    crystalHitsToBreak: 80
-    buffDuration: 25
+    crystalHitsToBreak: 60
+    buffDuration: 40
     breatherSeconds: 3
     orcCount: 0
     orcSpawnInterval: 0
     bossSpawnDelay: 0
-  - waveName: Crystal Orc Siege
+  - waveName: Crystal Golem King
     orcHP: 50
     orcSpeed: 2.4
     orcBudget: 2500
-    bossUnlockThreshold: 0.55
-    tensionCycles: 3
+    bossUnlockThreshold: 0
+    tensionCycles: 0
     buildPressure: {x: 35, y: 72}
     surgePressure: {x: 82, y: 90}
     reliefPressure: {x: 28, y: 38}
-    bossEntrancePressure: 22
+    bossEntrancePressure: 100
     buildDuration: 7
     surgeDuration: 7
     reliefDuration: 4
-    bossHP: 5000
-    bossSpeed: 0.7
-    crystalHitsToBreak: 90
-    buffDuration: 24
+    bossHP: 3500
+    bossSpeed: 0.6
+    crystalHitsToBreak: 75
+    buffDuration: 45
     breatherSeconds: 3
     orcCount: 0
     orcSpawnInterval: 0

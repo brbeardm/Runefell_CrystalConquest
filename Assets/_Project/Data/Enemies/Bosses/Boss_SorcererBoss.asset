@@ -19,6 +19,7 @@ MonoBehaviour:
   contactDamage: 999
   isInstantKill: 1
   healthRegenRate: 0
-  scaleMultiplier: 5
+  scaleMultiplier: 2
+  spawnYOffset: 0.25
   scoreValue: 250
   powerUpDropChance: 0.05
